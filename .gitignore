@@ -1,0 +1,18 @@
+# Binaries
+bin/
+*.exe
+
+# Environment
+.env
+.env.*
+*.local.env
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+
+# Go
+*.test

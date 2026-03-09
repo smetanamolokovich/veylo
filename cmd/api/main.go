@@ -1,0 +1,57 @@
+package main
+
+import (
+	"database/sql"
+	"net/http"
+	"os"
+
+	_ "github.com/lib/pq"
+	appinspection "github.com/smetanamolokovich/veylo/internal/application/inspection"
+	"github.com/smetanamolokovich/veylo/internal/infrastructure/postgres"
+	httpinterface "github.com/smetanamolokovich/veylo/internal/interface/http"
+	"github.com/smetanamolokovich/veylo/internal/interface/http/handler"
+	"github.com/smetanamolokovich/veylo/pkg/logger"
+)
+
+func main() {
+	env := os.Getenv("APP_ENV")
+	if env == "" {
+		env = "development"
+	}
+
+	log := logger.New(env)
+
+	dbURL := os.Getenv("DATABASE_URL")
+	if dbURL == "" {
+		dbURL = "postgres://postgres:postgres@localhost:6543/veylo?sslmode=disable"
+	}
+
+	db, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		log.Error("failed to connect to database", "err", err)
+		os.Exit(1)
+	}
+	defer db.Close()
+
+	if err := db.Ping(); err != nil {
+		log.Error("database is not reachable", "err", err)
+		os.Exit(1)
+	}
+
+	log.Info("database connected")
+
+	// Wire up dependencies
+	inspectionRepo := postgres.NewInspectionRepository(db)
+	createInspection := appinspection.NewCreateInspectionUseCase(inspectionRepo)
+	inspectionHandler := handler.NewInspectionHandler(createInspection)
+
+	router := httpinterface.NewRouter(inspectionHandler)
+
+	addr := ":8080"
+	log.Info("starting server", "addr", addr)
+
+	if err := http.ListenAndServe(addr, router); err != nil {
+		log.Error("server error", "err", err)
+		os.Exit(1)
+	}
+}
