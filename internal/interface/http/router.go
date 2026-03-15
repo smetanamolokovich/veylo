@@ -4,9 +4,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/smetanamolokovich/veylo/internal/interface/http/handler"
+	authmiddleware "github.com/smetanamolokovich/veylo/internal/interface/http/middleware"
+	"github.com/smetanamolokovich/veylo/pkg/jwt"
 )
 
-func NewRouter(inspectionHandler *handler.InspectionHandler) *chi.Mux {
+func NewRouter(inspectionHandler *handler.InspectionHandler, jwtManager *jwt.Manager) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)
@@ -15,6 +17,7 @@ func NewRouter(inspectionHandler *handler.InspectionHandler) *chi.Mux {
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Route("/inspections", func(r chi.Router) {
+			r.Use(authmiddleware.Auth(jwtManager))
 			r.Post("/", inspectionHandler.Create)
 		})
 	})

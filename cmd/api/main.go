@@ -10,6 +10,7 @@ import (
 	"github.com/smetanamolokovich/veylo/internal/infrastructure/postgres"
 	httpinterface "github.com/smetanamolokovich/veylo/internal/interface/http"
 	"github.com/smetanamolokovich/veylo/internal/interface/http/handler"
+	"github.com/smetanamolokovich/veylo/pkg/jwt"
 	"github.com/smetanamolokovich/veylo/pkg/logger"
 )
 
@@ -45,7 +46,20 @@ func main() {
 	createInspection := appinspection.NewCreateInspectionUseCase(inspectionRepo)
 	inspectionHandler := handler.NewInspectionHandler(createInspection)
 
-	router := httpinterface.NewRouter(inspectionHandler)
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		if env == "production" {
+			log.Error("JWT_SECRET environment variable is required in production")
+			os.Exit(1)
+		} else {
+			secret = "dev-secret"
+			log.Warn("using default JWT secret in non-production environment")
+		}
+	}
+
+	jwtManager := jwt.NewManager(secret)
+
+	router := httpinterface.NewRouter(inspectionHandler, jwtManager)
 
 	addr := ":8080"
 	log.Info("starting server", "addr", addr)
