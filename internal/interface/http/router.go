@@ -8,7 +8,7 @@ import (
 	"github.com/smetanamolokovich/veylo/pkg/jwt"
 )
 
-func NewRouter(inspectionHandler *handler.InspectionHandler, jwtManager *jwt.Manager) *chi.Mux {
+func NewRouter(inspectionHandler *handler.InspectionHandler, authHandler *handler.AuthHandler, jwtManager *jwt.Manager) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)
@@ -20,6 +20,12 @@ func NewRouter(inspectionHandler *handler.InspectionHandler, jwtManager *jwt.Man
 			r.Use(authmiddleware.Auth(jwtManager))
 			r.Post("/", inspectionHandler.Create)
 		})
+	})
+
+	r.Route("/api/auth", func(r chi.Router) {
+		r.Post("/register", authHandler.Register)
+		r.Post("/login", authHandler.Login)
+		r.Post("/refresh", authHandler.Refresh)
 	})
 
 	return r

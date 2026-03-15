@@ -88,10 +88,6 @@ func (r *InspectionRepository) Delete(ctx context.Context, id, organizationID st
 	return nil
 }
 
-type scanner interface {
-	Scan(dest ...any) error
-}
-
 func scanInspection(s scanner) (*inspection.Inspection, error) {
 	var (
 		id             string

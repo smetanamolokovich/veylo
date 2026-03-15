@@ -6,7 +6,9 @@ import (
 	"os"
 
 	_ "github.com/lib/pq"
+	appauth "github.com/smetanamolokovich/veylo/internal/application/auth"
 	appinspection "github.com/smetanamolokovich/veylo/internal/application/inspection"
+	"github.com/smetanamolokovich/veylo/internal/infrastructure/bcrypt"
 	"github.com/smetanamolokovich/veylo/internal/infrastructure/postgres"
 	httpinterface "github.com/smetanamolokovich/veylo/internal/interface/http"
 	"github.com/smetanamolokovich/veylo/internal/interface/http/handler"
@@ -41,11 +43,6 @@ func main() {
 
 	log.Info("database connected")
 
-	// Wire up dependencies
-	inspectionRepo := postgres.NewInspectionRepository(db)
-	createInspection := appinspection.NewCreateInspectionUseCase(inspectionRepo)
-	inspectionHandler := handler.NewInspectionHandler(createInspection)
-
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
 		if env == "production" {
@@ -58,8 +55,21 @@ func main() {
 	}
 
 	jwtManager := jwt.NewManager(secret)
+	hasher := bcrypt.NewPasswordHasher()
 
-	router := httpinterface.NewRouter(inspectionHandler, jwtManager)
+	// Wire up dependencies
+	inspectionRepo := postgres.NewInspectionRepository(db)
+	createInspection := appinspection.NewCreateInspectionUseCase(inspectionRepo)
+	inspectionHandler := handler.NewInspectionHandler(createInspection)
+
+	userRepo := postgres.NewUserRepository(db)
+	refreshTokenRepo := postgres.NewRefreshTokenRepository(db)
+	registerUC := appauth.NewRegisterUseCase(userRepo, hasher)
+	loginUC := appauth.NewLoginUseCase(userRepo, refreshTokenRepo, hasher, jwtManager)
+	refreshUC := appauth.NewRefreshTokenUseCase(refreshTokenRepo, userRepo, jwtManager, hasher)
+	authHandler := handler.NewAuthHandler(registerUC, loginUC, refreshUC)
+
+	router := httpinterface.NewRouter(inspectionHandler, authHandler, jwtManager)
 
 	addr := ":8080"
 	log.Info("starting server", "addr", addr)

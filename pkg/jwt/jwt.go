@@ -1,6 +1,8 @@
 package jwt
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -15,13 +17,17 @@ func NewManager(secretKey string) *Manager {
 }
 
 type Claims struct {
+	UserID         string `json:"user_id"`
 	OrganizationID string `json:"organization_id"`
+	Role           string `json:"role"`
 	jwt.RegisteredClaims
 }
 
-func (m *Manager) Generate(orgID string) (string, error) {
+func (m *Manager) Generate(userID, orgID, role string) (string, error) {
 	claims := &Claims{
+		UserID:         userID,
 		OrganizationID: orgID,
+		Role:           role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 		},
@@ -45,4 +51,13 @@ func (m *Manager) Validate(tokenStr string) (*Claims, error) {
 	}
 
 	return nil, jwt.ErrTokenInvalidClaims
+}
+
+func (m *Manager) GenerateRefresh() (string, error) {
+	b := make([]byte, 32)
+	_, err := rand.Read(b)
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
 }

@@ -10,12 +10,11 @@ import (
 type Status string
 
 const (
-	StatusNew            Status = "new"
-	StatusInProgress     Status = "in_progress"
-	StatusAwaitingReview Status = "awaiting_review"
-	StatusDisputed       Status = "disputed"
-	StatusCompleted      Status = "completed"
-	StatusCancelled      Status = "cancelled"
+	StatusNew             Status = "new"
+	StatusDamageEntered   Status = "damage_entered"
+	StatusDamageEvaluated Status = "damage_evaluated"
+	StatusInspected       Status = "inspected"
+	StatusCompleted       Status = "completed"
 )
 
 type Inspection struct {
@@ -67,18 +66,17 @@ func (i *Inspection) Events() []Event { return i.events }
 func (i *Inspection) ClearEvents()    { i.events = nil }
 
 var validTransitions = map[Status][]Status{
-	StatusNew:            {StatusInProgress, StatusCancelled},
-	StatusInProgress:     {StatusAwaitingReview, StatusCancelled},
-	StatusAwaitingReview: {StatusDisputed, StatusCompleted},
-	StatusDisputed:       {StatusAwaitingReview, StatusCancelled},
-	StatusCompleted:      {},
-	StatusCancelled:      {},
+	StatusNew:             {StatusDamageEntered},
+	StatusDamageEntered:   {StatusDamageEvaluated},
+	StatusDamageEvaluated: {StatusInspected},
+	StatusInspected:       {StatusCompleted},
+	StatusCompleted:       {},
 }
 
 func (i *Inspection) Transition(status Status) error {
 	allowed, ok := validTransitions[i.status]
 	if !ok {
-		return fmt.Errorf("invalid current status: %s", i.status)
+		return fmt.Errorf("%w: from %s to %s", ErrInvalidTransition, i.status, status)
 	}
 
 	if slices.Contains(allowed, status) {
@@ -88,5 +86,5 @@ func (i *Inspection) Transition(status Status) error {
 		return nil
 	}
 
-	return fmt.Errorf("invalid status transition from %s to %s", i.status, status)
+	return fmt.Errorf("%w: from %s to %s", ErrInvalidTransition, i.status, status)
 }
