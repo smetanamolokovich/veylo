@@ -16,7 +16,7 @@ type StatusChanged struct {
 	occurredAt time.Time
 }
 
-func (e StatusChanged) EventName() string { return "inscpection.status_changed" }
+func (e StatusChanged) EventName() string { return "inspection.status_changed" }
 
 func (e StatusChanged) OccurredAt() time.Time { return e.occurredAt }
 
