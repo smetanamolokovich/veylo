@@ -60,7 +60,10 @@ func main() {
 	// Wire up dependencies
 	inspectionRepo := postgres.NewInspectionRepository(db)
 	createInspection := appinspection.NewCreateInspectionUseCase(inspectionRepo)
-	inspectionHandler := handler.NewInspectionHandler(createInspection)
+	getInspection := appinspection.NewGetInspectionUseCase(inspectionRepo)
+	listInspections := appinspection.NewListInspectionsUseCase(inspectionRepo)
+	transitionInspection := appinspection.NewTransitionInspectionUseCase(inspectionRepo)
+	inspectionHandler := handler.NewInspectionHandler(createInspection, listInspections, getInspection, transitionInspection)
 
 	userRepo := postgres.NewUserRepository(db)
 	refreshTokenRepo := postgres.NewRefreshTokenRepository(db)

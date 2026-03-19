@@ -51,17 +51,18 @@ func (r *InspectionRepository) FindByID(ctx context.Context, id, organizationID 
 	return scanInspection(row)
 }
 
-func (r *InspectionRepository) FindAllByOrganization(ctx context.Context, organizationID string) ([]*inspection.Inspection, error) {
+func (r *InspectionRepository) FindAllByOrganization(ctx context.Context, organizationID string, offset, limit int) ([]*inspection.Inspection, error) {
 	query := `
-                SELECT id, organization_id, contract_number, status, created_at, updated_at
-                FROM inspections
-                WHERE organization_id = $1
-                ORDER BY created_at DESC
-        `
+		SELECT id, organization_id, contract_number, status, created_at, updated_at
+		FROM inspections
+		WHERE organization_id = $1
+		ORDER BY created_at DESC
+		LIMIT $2 OFFSET $3
+	`
 
-	rows, err := r.db.QueryContext(ctx, query, organizationID)
+	rows, err := r.db.QueryContext(ctx, query, organizationID, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("InspectionRepository.FindAllByOrganizationID: %w", err)
+		return nil, fmt.Errorf("InspectionRepository.FindAllByOrganization: %w", err)
 	}
 	defer rows.Close()
 
@@ -75,6 +76,18 @@ func (r *InspectionRepository) FindAllByOrganization(ctx context.Context, organi
 	}
 
 	return inspections, nil
+}
+
+func (r *InspectionRepository) CountByOrganization(ctx context.Context, organizationID string) (int, error) {
+	query := `SELECT COUNT(*) FROM inspections WHERE organization_id = $1`
+
+	var count int
+	err := r.db.QueryRowContext(ctx, query, organizationID).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("InspectionRepository.CountByOrganization: %w", err)
+	}
+
+	return count, nil
 }
 
 func (r *InspectionRepository) Delete(ctx context.Context, id, organizationID string) error {
@@ -100,6 +113,9 @@ func scanInspection(s scanner) (*inspection.Inspection, error) {
 
 	err := s.Scan(&id, &organizationID, &contractNumber, &status, &createdAt, &updatedAt)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, inspection.ErrNotFound
+		}
 		return nil, fmt.Errorf("scanInspection: %w", err)
 	}
 

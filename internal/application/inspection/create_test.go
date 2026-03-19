@@ -23,8 +23,12 @@ func (m *mockRepo) FindByID(_ context.Context, _, _ string) (*inspection.Inspect
 	return nil, nil
 }
 
-func (m *mockRepo) FindAllByOrganization(_ context.Context, _ string) ([]*inspection.Inspection, error) {
+func (m *mockRepo) FindAllByOrganization(_ context.Context, _ string, _, _ int) ([]*inspection.Inspection, error) {
 	return nil, nil
+}
+
+func (m *mockRepo) CountByOrganization(_ context.Context, _ string) (int, error) {
+	return 0, nil
 }
 
 func (m *mockRepo) Delete(_ context.Context, _, _ string) error {

@@ -19,6 +19,9 @@ func NewRouter(inspectionHandler *handler.InspectionHandler, authHandler *handle
 		r.Route("/inspections", func(r chi.Router) {
 			r.Use(authmiddleware.Auth(jwtManager))
 			r.Post("/", inspectionHandler.Create)
+			r.Get("/", inspectionHandler.List)
+			r.Get("/{id}", inspectionHandler.Get)
+			r.Post("/{id}/transitions", inspectionHandler.Transition)
 		})
 	})
 
