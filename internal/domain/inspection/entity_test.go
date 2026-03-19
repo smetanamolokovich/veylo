@@ -10,7 +10,7 @@ import (
 
 func TestNewInspection(t *testing.T) {
 	t.Run("creates inspection with status new", func(t *testing.T) {
-		insp, err := inspection.NewInspection("id-1", "org-1", "CONTRACT-001")
+		insp, err := inspection.NewInspection("id-1", "org-1", "asset-1", "CONTRACT-001")
 
 		require.NoError(t, err)
 		assert.Equal(t, inspection.StatusNew, insp.Status())
@@ -18,20 +18,23 @@ func TestNewInspection(t *testing.T) {
 	})
 
 	t.Run("returns error if required fields are missing", func(t *testing.T) {
-		_, err := inspection.NewInspection("", "org-1", "CONTRACT-001")
+		_, err := inspection.NewInspection("", "org-1", "asset-1", "CONTRACT-001")
 		assert.Error(t, err)
 
-		_, err = inspection.NewInspection("id-1", "", "CONTRACT-001")
+		_, err = inspection.NewInspection("id-1", "", "asset-1", "CONTRACT-001")
 		assert.Error(t, err)
 
-		_, err = inspection.NewInspection("id-1", "org-1", "")
+		_, err = inspection.NewInspection("id-1", "org-1", "", "CONTRACT-001")
+		assert.Error(t, err)
+
+		_, err = inspection.NewInspection("id-1", "org-1", "asset-1", "")
 		assert.Error(t, err)
 	})
 }
 
 func TestTransition(t *testing.T) {
 	t.Run("valid full flow", func(t *testing.T) {
-		insp, err := inspection.NewInspection("id-1", "org-1", "CONTRACT-001")
+		insp, err := inspection.NewInspection("id-1", "org-1", "asset-1", "CONTRACT-001")
 		require.NoError(t, err)
 
 		require.NoError(t, insp.Transition(inspection.StatusDamageEntered))
@@ -48,7 +51,7 @@ func TestTransition(t *testing.T) {
 	})
 
 	t.Run("invalid transition — skip steps", func(t *testing.T) {
-		insp, err := inspection.NewInspection("id-1", "org-1", "CONTRACT-001")
+		insp, err := inspection.NewInspection("id-1", "org-1", "asset-1", "CONTRACT-001")
 		require.NoError(t, err)
 
 		err = insp.Transition(inspection.StatusCompleted)
@@ -57,7 +60,7 @@ func TestTransition(t *testing.T) {
 	})
 
 	t.Run("invalid transition — go backwards", func(t *testing.T) {
-		insp, err := inspection.NewInspection("id-1", "org-1", "CONTRACT-001")
+		insp, err := inspection.NewInspection("id-1", "org-1", "asset-1", "CONTRACT-001")
 		require.NoError(t, err)
 
 		require.NoError(t, insp.Transition(inspection.StatusDamageEntered))
@@ -66,7 +69,7 @@ func TestTransition(t *testing.T) {
 	})
 
 	t.Run("cannot transition from completed", func(t *testing.T) {
-		insp, err := inspection.NewInspection("id-1", "org-1", "CONTRACT-001")
+		insp, err := inspection.NewInspection("id-1", "org-1", "asset-1", "CONTRACT-001")
 		require.NoError(t, err)
 
 		require.NoError(t, insp.Transition(inspection.StatusDamageEntered))
@@ -79,7 +82,7 @@ func TestTransition(t *testing.T) {
 	})
 
 	t.Run("events are recorded on valid transition", func(t *testing.T) {
-		insp, err := inspection.NewInspection("id-1", "org-1", "CONTRACT-001")
+		insp, err := inspection.NewInspection("id-1", "org-1", "asset-1", "CONTRACT-001")
 		require.NoError(t, err)
 
 		require.NoError(t, insp.Transition(inspection.StatusDamageEntered))
@@ -90,7 +93,7 @@ func TestTransition(t *testing.T) {
 	})
 
 	t.Run("events are cleared", func(t *testing.T) {
-		insp, _ := inspection.NewInspection("id-1", "org-1", "CONTRACT-001")
+		insp, _ := inspection.NewInspection("id-1", "org-1", "asset-1", "CONTRACT-001")
 		insp.Transition(inspection.StatusDamageEntered)
 
 		insp.ClearEvents()

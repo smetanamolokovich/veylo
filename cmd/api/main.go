@@ -6,7 +6,9 @@ import (
 	"os"
 
 	_ "github.com/lib/pq"
+	appasset "github.com/smetanamolokovich/veylo/internal/application/asset"
 	appauth "github.com/smetanamolokovich/veylo/internal/application/auth"
+	appfinding "github.com/smetanamolokovich/veylo/internal/application/finding"
 	appinspection "github.com/smetanamolokovich/veylo/internal/application/inspection"
 	"github.com/smetanamolokovich/veylo/internal/infrastructure/bcrypt"
 	"github.com/smetanamolokovich/veylo/internal/infrastructure/postgres"
@@ -58,6 +60,7 @@ func main() {
 	hasher := bcrypt.NewPasswordHasher()
 
 	// Wire up dependencies
+	// inspections
 	inspectionRepo := postgres.NewInspectionRepository(db)
 	createInspection := appinspection.NewCreateInspectionUseCase(inspectionRepo)
 	getInspection := appinspection.NewGetInspectionUseCase(inspectionRepo)
@@ -65,6 +68,7 @@ func main() {
 	transitionInspection := appinspection.NewTransitionInspectionUseCase(inspectionRepo)
 	inspectionHandler := handler.NewInspectionHandler(createInspection, listInspections, getInspection, transitionInspection)
 
+	// auth
 	userRepo := postgres.NewUserRepository(db)
 	refreshTokenRepo := postgres.NewRefreshTokenRepository(db)
 	registerUC := appauth.NewRegisterUseCase(userRepo, hasher)
@@ -72,7 +76,20 @@ func main() {
 	refreshUC := appauth.NewRefreshTokenUseCase(refreshTokenRepo, userRepo, jwtManager, hasher)
 	authHandler := handler.NewAuthHandler(registerUC, loginUC, refreshUC)
 
-	router := httpinterface.NewRouter(inspectionHandler, authHandler, jwtManager)
+	// assets
+	assetRepo := postgres.NewAssetRepository(db)
+	createVehicleUC := appasset.NewCreateVehicleAssetUseCase(assetRepo)
+	getAssetUC := appasset.NewGetAssetUseCase(assetRepo)
+	assetHandler := handler.NewAssetHandler(createVehicleUC, getAssetUC)
+
+	// findings
+	findingRepo := postgres.NewFindingRepository(db)
+	createFindingUC := appfinding.NewCreateFindingUseCase(findingRepo)
+	listFindingsUC := appfinding.NewListFindingsUseCase(findingRepo)
+	assessFindingUC := appfinding.NewAssessFindingUseCase(findingRepo)
+	findingHandler := handler.NewFindingHandler(createFindingUC, listFindingsUC, assessFindingUC)
+
+	router := httpinterface.NewRouter(inspectionHandler, authHandler, assetHandler, findingHandler, jwtManager)
 
 	addr := ":8080"
 	log.Info("starting server", "addr", addr)

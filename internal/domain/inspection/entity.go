@@ -20,6 +20,7 @@ const (
 type Inspection struct {
 	id             string
 	organizationID string
+	assetID        string
 	contractNumber string
 	status         Status
 	createdAt      time.Time
@@ -27,9 +28,9 @@ type Inspection struct {
 	events         []Event
 }
 
-func NewInspection(id, organizationID, contractNumber string) (*Inspection, error) {
-	if id == "" || organizationID == "" || contractNumber == "" {
-		return nil, errors.New("id, organizationID and contractNumber are required")
+func NewInspection(id, organizationID, assetID, contractNumber string) (*Inspection, error) {
+	if id == "" || organizationID == "" || assetID == "" || contractNumber == "" {
+		return nil, errors.New("id, organizationID, assetID and contractNumber are required")
 	}
 
 	now := time.Now().UTC()
@@ -37,6 +38,7 @@ func NewInspection(id, organizationID, contractNumber string) (*Inspection, erro
 	return &Inspection{
 		id:             id,
 		organizationID: organizationID,
+		assetID:        assetID,
 		contractNumber: contractNumber,
 		status:         StatusNew,
 		createdAt:      now,
@@ -44,10 +46,11 @@ func NewInspection(id, organizationID, contractNumber string) (*Inspection, erro
 	}, nil
 }
 
-func Reconstitute(id, organizationID, contractNumber string, status Status, createdAt, updatedAt time.Time) *Inspection {
+func Reconstitute(id, organizationID, assetID, contractNumber string, status Status, createdAt, updatedAt time.Time) *Inspection {
 	return &Inspection{
 		id:             id,
 		organizationID: organizationID,
+		assetID:        assetID,
 		contractNumber: contractNumber,
 		status:         status,
 		createdAt:      createdAt,
@@ -57,6 +60,7 @@ func Reconstitute(id, organizationID, contractNumber string, status Status, crea
 
 func (i *Inspection) ID() string             { return i.id }
 func (i *Inspection) OrganizationID() string { return i.organizationID }
+func (i *Inspection) AssetID() string        { return i.assetID }
 func (i *Inspection) ContractNumber() string { return i.contractNumber }
 func (i *Inspection) Status() Status         { return i.status }
 func (i *Inspection) CreatedAt() time.Time   { return i.createdAt }

@@ -9,6 +9,7 @@ import (
 type CreateInspectionRequest struct {
 	ID             string
 	OrganizationID string
+	AssetID        string
 	ContractNumber string
 }
 
@@ -26,7 +27,7 @@ func NewCreateInspectionUseCase(repo inspection.Repository) *CreateInspectionUse
 }
 
 func (uc *CreateInspectionUseCase) Execute(ctx context.Context, req CreateInspectionRequest) (*CreateInspectionResponse, error) {
-	insp, err := inspection.NewInspection(req.ID, req.OrganizationID, req.ContractNumber)
+	insp, err := inspection.NewInspection(req.ID, req.OrganizationID, req.AssetID, req.ContractNumber)
 	if err != nil {
 		return nil, err
 	}

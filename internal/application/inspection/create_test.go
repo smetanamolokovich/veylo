@@ -11,7 +11,11 @@ import (
 )
 
 type mockRepo struct {
-	saved *inspection.Inspection
+	saved      *inspection.Inspection
+	findResult *inspection.Inspection
+	findErr    error
+	listResult []*inspection.Inspection
+	count      int
 }
 
 func (m *mockRepo) Save(_ context.Context, insp *inspection.Inspection) error {
@@ -20,15 +24,15 @@ func (m *mockRepo) Save(_ context.Context, insp *inspection.Inspection) error {
 }
 
 func (m *mockRepo) FindByID(_ context.Context, _, _ string) (*inspection.Inspection, error) {
-	return nil, nil
+	return m.findResult, m.findErr
 }
 
 func (m *mockRepo) FindAllByOrganization(_ context.Context, _ string, _, _ int) ([]*inspection.Inspection, error) {
-	return nil, nil
+	return m.listResult, nil
 }
 
 func (m *mockRepo) CountByOrganization(_ context.Context, _ string) (int, error) {
-	return 0, nil
+	return m.count, nil
 }
 
 func (m *mockRepo) Delete(_ context.Context, _, _ string) error {
@@ -43,6 +47,7 @@ func TestCreateInspectionUseCase(t *testing.T) {
 		resp, err := uc.Execute(context.Background(), appinspection.CreateInspectionRequest{
 			ID:             "id-1",
 			OrganizationID: "org-1",
+			AssetID:        "asset-1",
 			ContractNumber: "CONTRACT-001",
 		})
 

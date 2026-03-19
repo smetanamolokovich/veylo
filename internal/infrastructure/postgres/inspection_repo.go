@@ -18,8 +18,8 @@ func NewInspectionRepository(db *sql.DB) *InspectionRepository {
 }
 
 func (r *InspectionRepository) Save(ctx context.Context, insp *inspection.Inspection) error {
-	query := `INSERT INTO inspections (id, organization_id, contract_number, status, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6)
+	query := `INSERT INTO inspections (id, organization_id, asset_id, contract_number, status, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
                 ON CONFLICT (id) DO UPDATE SET
                         status = EXCLUDED.status,
                         updated_at = EXCLUDED.updated_at
@@ -28,6 +28,7 @@ func (r *InspectionRepository) Save(ctx context.Context, insp *inspection.Inspec
 	_, err := r.db.ExecContext(ctx, query,
 		insp.ID(),
 		insp.OrganizationID(),
+		insp.AssetID(),
 		insp.ContractNumber(),
 		string(insp.Status()),
 		insp.CreatedAt(),
@@ -42,7 +43,7 @@ func (r *InspectionRepository) Save(ctx context.Context, insp *inspection.Inspec
 
 func (r *InspectionRepository) FindByID(ctx context.Context, id, organizationID string) (*inspection.Inspection, error) {
 	query := `
-                SELECT id, organization_id, contract_number, status, created_at, updated_at
+                SELECT id, organization_id, asset_id, contract_number, status, created_at, updated_at
                 FROM inspections
                 WHERE id = $1 AND organization_id = $2
         `
@@ -53,7 +54,7 @@ func (r *InspectionRepository) FindByID(ctx context.Context, id, organizationID 
 
 func (r *InspectionRepository) FindAllByOrganization(ctx context.Context, organizationID string, offset, limit int) ([]*inspection.Inspection, error) {
 	query := `
-		SELECT id, organization_id, contract_number, status, created_at, updated_at
+		SELECT id, organization_id, asset_id, contract_number, status, created_at, updated_at
 		FROM inspections
 		WHERE organization_id = $1
 		ORDER BY created_at DESC
@@ -105,13 +106,14 @@ func scanInspection(s scanner) (*inspection.Inspection, error) {
 	var (
 		id             string
 		organizationID string
+		assetID        string
 		contractNumber string
 		status         string
 		createdAt      time.Time
 		updatedAt      time.Time
 	)
 
-	err := s.Scan(&id, &organizationID, &contractNumber, &status, &createdAt, &updatedAt)
+	err := s.Scan(&id, &organizationID, &assetID, &contractNumber, &status, &createdAt, &updatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, inspection.ErrNotFound
@@ -119,5 +121,5 @@ func scanInspection(s scanner) (*inspection.Inspection, error) {
 		return nil, fmt.Errorf("scanInspection: %w", err)
 	}
 
-	return inspection.Reconstitute(id, organizationID, contractNumber, inspection.Status(status), createdAt, updatedAt), nil
+	return inspection.Reconstitute(id, organizationID, assetID, contractNumber, inspection.Status(status), createdAt, updatedAt), nil
 }

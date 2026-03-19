@@ -10,7 +10,11 @@ import (
 
 type contextKey string
 
-const orgIDKey contextKey = "organization_id"
+const (
+	orgIDKey  contextKey = "organization_id"
+	userIDKey contextKey = "user_id"
+	roleKey   contextKey = "role"
+)
 
 func Auth(jwtManager *jwt.Manager) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -36,6 +40,8 @@ func Auth(jwtManager *jwt.Manager) func(http.Handler) http.Handler {
 
 			ctx := r.Context()
 			ctx = context.WithValue(ctx, orgIDKey, claims.OrganizationID)
+			ctx = context.WithValue(ctx, userIDKey, claims.UserID)
+			ctx = context.WithValue(ctx, roleKey, claims.Role)
 			r = r.WithContext(ctx)
 
 			next.ServeHTTP(w, r)
@@ -44,6 +50,16 @@ func Auth(jwtManager *jwt.Manager) func(http.Handler) http.Handler {
 }
 
 func OrganizationIDFromCtx(ctx context.Context) (string, bool) {
-	orgID, ok := ctx.Value(orgIDKey).(string)
-	return orgID, ok
+	v, ok := ctx.Value(orgIDKey).(string)
+	return v, ok
+}
+
+func UserIDFromCtx(ctx context.Context) (string, bool) {
+	v, ok := ctx.Value(userIDKey).(string)
+	return v, ok
+}
+
+func RoleFromCtx(ctx context.Context) (string, bool) {
+	v, ok := ctx.Value(roleKey).(string)
+	return v, ok
 }
