@@ -40,6 +40,7 @@ func NewInspectionHandler(
 }
 
 type createInspectionRequest struct {
+	AssetID        string `json:"asset_id"`
 	ContractNumber string `json:"contract_number"`
 }
 
@@ -59,6 +60,7 @@ func (h *InspectionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	resp, err := h.createInspectionUseCase.Execute(r.Context(), appinspection.CreateInspectionRequest{
 		ID:             ulid.Make().String(),
 		OrganizationID: orgID,
+		AssetID:        req.AssetID,
 		ContractNumber: req.ContractNumber,
 	})
 	if err != nil {

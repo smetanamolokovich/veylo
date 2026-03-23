@@ -29,12 +29,16 @@ func NewFindingHandler(
 	}
 }
 
-type createFindingRequest struct {
-	FindingType string  `json:"type"`
-	Description string  `json:"description"`
+type createFindingLocation struct {
 	BodyArea    string  `json:"body_area"`
 	CoordinateX float64 `json:"coordinate_x"`
 	CoordinateY float64 `json:"coordinate_y"`
+}
+
+type createFindingRequest struct {
+	FindingType string               `json:"finding_type"`
+	Description string               `json:"description"`
+	Location    createFindingLocation `json:"location"`
 }
 
 func (h *FindingHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -57,9 +61,9 @@ func (h *FindingHandler) Create(w http.ResponseWriter, r *http.Request) {
 		OrganizationID: orgID,
 		FindingType:    req.FindingType,
 		Description:    req.Description,
-		BodyArea:       req.BodyArea,
-		CoordinateX:    req.CoordinateX,
-		CoordinateY:    req.CoordinateY,
+		BodyArea:       req.Location.BodyArea,
+		CoordinateX:    req.Location.CoordinateX,
+		CoordinateY:    req.Location.CoordinateY,
 	})
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
@@ -90,13 +94,17 @@ func (h *FindingHandler) List(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
+type costBreakdownRequest struct {
+	Parts int `json:"parts"`
+	Labor int `json:"labor"`
+	Paint int `json:"paint"`
+	Other int `json:"other"`
+}
+
 type assessFindingRequest struct {
-	Severity     string `json:"severity"`
-	RepairMethod string `json:"repair_method"`
-	CostParts    int    `json:"cost_parts"`
-	CostLabor    int    `json:"cost_labor"`
-	CostPaint    int    `json:"cost_paint"`
-	CostOther    int    `json:"cost_other"`
+	Severity      string               `json:"severity"`
+	RepairMethod  string               `json:"repair_method"`
+	CostBreakdown costBreakdownRequest `json:"cost_breakdown"`
 }
 
 func (h *FindingHandler) Assess(w http.ResponseWriter, r *http.Request) {
@@ -119,10 +127,10 @@ func (h *FindingHandler) Assess(w http.ResponseWriter, r *http.Request) {
 		OrganizationID: orgID,
 		Severity:       finding.Severity(req.Severity),
 		RepairMethod:   finding.RepairMethod(req.RepairMethod),
-		CostParts:      req.CostParts,
-		CostLabor:      req.CostLabor,
-		CostPaint:      req.CostPaint,
-		CostOther:      req.CostOther,
+		CostParts:      req.CostBreakdown.Parts,
+		CostLabor:      req.CostBreakdown.Labor,
+		CostPaint:      req.CostBreakdown.Paint,
+		CostOther:      req.CostBreakdown.Other,
 	})
 	if err != nil {
 		if errors.Is(err, finding.ErrNotFound) {
