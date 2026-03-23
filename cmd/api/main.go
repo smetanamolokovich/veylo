@@ -1,16 +1,23 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"net/http"
 	"os"
 
+	"github.com/aws/aws-sdk-go-v2/config"
+	awss3 "github.com/aws/aws-sdk-go-v2/service/s3"
 	_ "github.com/lib/pq"
 	appasset "github.com/smetanamolokovich/veylo/internal/application/asset"
 	appauth "github.com/smetanamolokovich/veylo/internal/application/auth"
 	appfinding "github.com/smetanamolokovich/veylo/internal/application/finding"
 	appinspection "github.com/smetanamolokovich/veylo/internal/application/inspection"
+	appreport "github.com/smetanamolokovich/veylo/internal/application/report"
+	appworkflow "github.com/smetanamolokovich/veylo/internal/application/workflow"
 	"github.com/smetanamolokovich/veylo/internal/infrastructure/bcrypt"
+	infrapdf "github.com/smetanamolokovich/veylo/internal/infrastructure/pdf"
+	infraS3 "github.com/smetanamolokovich/veylo/internal/infrastructure/s3"
 	"github.com/smetanamolokovich/veylo/internal/infrastructure/postgres"
 	httpinterface "github.com/smetanamolokovich/veylo/internal/interface/http"
 	"github.com/smetanamolokovich/veylo/internal/interface/http/handler"
@@ -42,7 +49,6 @@ func main() {
 		log.Error("database is not reachable", "err", err)
 		os.Exit(1)
 	}
-
 	log.Info("database connected")
 
 	secret := os.Getenv("JWT_SECRET")
@@ -59,37 +65,73 @@ func main() {
 	jwtManager := jwt.NewManager(secret)
 	hasher := bcrypt.NewPasswordHasher()
 
-	// Wire up dependencies
-	// inspections
-	inspectionRepo := postgres.NewInspectionRepository(db)
-	createInspection := appinspection.NewCreateInspectionUseCase(inspectionRepo)
-	getInspection := appinspection.NewGetInspectionUseCase(inspectionRepo)
-	listInspections := appinspection.NewListInspectionsUseCase(inspectionRepo)
-	transitionInspection := appinspection.NewTransitionInspectionUseCase(inspectionRepo)
-	inspectionHandler := handler.NewInspectionHandler(createInspection, listInspections, getInspection, transitionInspection)
-
-	// auth
+	// Repositories
+	workflowRepo := postgres.NewWorkflowRepository(db)
+	orgRepo := postgres.NewOrganizationRepository(db)
 	userRepo := postgres.NewUserRepository(db)
 	refreshTokenRepo := postgres.NewRefreshTokenRepository(db)
+	assetRepo := postgres.NewAssetRepository(db)
+	findingRepo := postgres.NewFindingRepository(db)
+	inspectionRepo := postgres.NewInspectionRepository(db)
+	reportRepo := postgres.NewReportRepository(db)
+
+	// Report generation (optional — requires S3_BUCKET env var)
+	var generateReportUC *appreport.GenerateReportUseCase
+	s3Bucket := os.Getenv("S3_BUCKET")
+	s3BaseURL := os.Getenv("S3_BASE_URL")
+	if s3Bucket != "" {
+		cfg, err := config.LoadDefaultConfig(context.Background())
+		if err != nil {
+			log.Error("failed to load AWS config", "err", err)
+			os.Exit(1)
+		}
+		s3Client := awss3.NewFromConfig(cfg)
+		uploader := infraS3.NewUploader(s3Client, s3Bucket, s3BaseURL)
+		pdfGenerator := infrapdf.NewVehicleReportGenerator()
+		generateReportUC = appreport.NewGenerateReportUseCase(
+			inspectionRepo, assetRepo, findingRepo, orgRepo, reportRepo, pdfGenerator, uploader,
+		)
+		log.Info("S3 report generation enabled", "bucket", s3Bucket)
+	} else {
+		log.Warn("S3_BUCKET not set — PDF report generation disabled")
+	}
+
+	// Workflow
+	createWorkflowUC := appworkflow.NewCreateWorkflowUseCase(workflowRepo)
+	getWorkflowUC := appworkflow.NewGetWorkflowUseCase(workflowRepo)
+	addStatusUC := appworkflow.NewAddStatusUseCase(workflowRepo)
+	addTransitionUC := appworkflow.NewAddTransitionUseCase(workflowRepo)
+	workflowHandler := handler.NewWorkflowHandler(createWorkflowUC, getWorkflowUC, addStatusUC, addTransitionUC)
+
+	// Organizations
+	orgHandler := handler.NewOrganizationHandler(orgRepo)
+
+	// Auth
 	registerUC := appauth.NewRegisterUseCase(userRepo, hasher)
 	loginUC := appauth.NewLoginUseCase(userRepo, refreshTokenRepo, hasher, jwtManager)
 	refreshUC := appauth.NewRefreshTokenUseCase(refreshTokenRepo, userRepo, jwtManager, hasher)
-	authHandler := handler.NewAuthHandler(registerUC, loginUC, refreshUC)
+	signupUC := appauth.NewSignupUseCase(orgRepo, workflowRepo, userRepo, refreshTokenRepo, hasher, jwtManager)
+	authHandler := handler.NewAuthHandler(registerUC, loginUC, refreshUC, signupUC)
 
-	// assets
-	assetRepo := postgres.NewAssetRepository(db)
+	// Assets
 	createVehicleUC := appasset.NewCreateVehicleAssetUseCase(assetRepo)
 	getAssetUC := appasset.NewGetAssetUseCase(assetRepo)
 	assetHandler := handler.NewAssetHandler(createVehicleUC, getAssetUC)
 
-	// findings
-	findingRepo := postgres.NewFindingRepository(db)
+	// Findings
 	createFindingUC := appfinding.NewCreateFindingUseCase(findingRepo)
 	listFindingsUC := appfinding.NewListFindingsUseCase(findingRepo)
 	assessFindingUC := appfinding.NewAssessFindingUseCase(findingRepo)
 	findingHandler := handler.NewFindingHandler(createFindingUC, listFindingsUC, assessFindingUC)
 
-	router := httpinterface.NewRouter(inspectionHandler, authHandler, assetHandler, findingHandler, jwtManager)
+	// Inspections
+	createInspection := appinspection.NewCreateInspectionUseCase(inspectionRepo, workflowRepo)
+	getInspection := appinspection.NewGetInspectionUseCase(inspectionRepo)
+	listInspections := appinspection.NewListInspectionsUseCase(inspectionRepo)
+	transitionInspection := appinspection.NewTransitionInspectionUseCase(inspectionRepo, workflowRepo, generateReportUC)
+	inspectionHandler := handler.NewInspectionHandler(createInspection, listInspections, getInspection, transitionInspection, reportRepo)
+
+	router := httpinterface.NewRouter(inspectionHandler, authHandler, assetHandler, findingHandler, workflowHandler, orgHandler, jwtManager)
 
 	addr := ":8080"
 	log.Info("starting server", "addr", addr)

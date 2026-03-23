@@ -15,7 +15,7 @@ import (
 func TestGetInspectionUseCase(t *testing.T) {
 	t.Run("returns inspection by id", func(t *testing.T) {
 		stored := inspection.Reconstitute("insp-1", "org-1", "asset-1", "CONTRACT-001",
-			inspection.StatusNew, time.Now(), time.Now())
+			inspection.Status("new"), time.Now(), time.Now())
 
 		repo := &mockRepo{findResult: stored}
 		uc := appinspection.NewGetInspectionUseCase(repo)
@@ -29,7 +29,7 @@ func TestGetInspectionUseCase(t *testing.T) {
 		assert.Equal(t, "insp-1", resp.ID)
 		assert.Equal(t, "org-1", resp.OrganizationID)
 		assert.Equal(t, "CONTRACT-001", resp.ContractNumber)
-		assert.Equal(t, string(inspection.StatusNew), resp.Status)
+		assert.Equal(t, "new", resp.Status)
 	})
 
 	t.Run("returns error when not found", func(t *testing.T) {

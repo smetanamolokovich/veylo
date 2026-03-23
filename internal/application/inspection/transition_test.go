@@ -15,33 +15,35 @@ import (
 func TestTransitionInspectionUseCase(t *testing.T) {
 	t.Run("transitions from new to damage_entered", func(t *testing.T) {
 		stored := inspection.Reconstitute("insp-1", "org-1", "asset-1", "C-001",
-			inspection.StatusNew, time.Now(), time.Now())
+			inspection.Status("new"), time.Now(), time.Now())
 
 		repo := &mockRepo{findResult: stored}
-		uc := appinspection.NewTransitionInspectionUseCase(repo)
+		wfRepo := &mockWorkflowRepo{}
+		uc := appinspection.NewTransitionInspectionUseCase(repo, wfRepo, nil)
 
 		resp, err := uc.Execute(context.Background(), appinspection.TransitionInspectionRequest{
 			ID:             "insp-1",
 			OrganizationID: "org-1",
-			NewStatus:      inspection.StatusDamageEntered,
+			NewStatus:      "damage_entered",
 		})
 
 		require.NoError(t, err)
-		assert.Equal(t, string(inspection.StatusDamageEntered), resp.Status)
+		assert.Equal(t, "damage_entered", resp.Status)
 		assert.Equal(t, "insp-1", resp.ID)
 	})
 
 	t.Run("fails on invalid transition", func(t *testing.T) {
 		stored := inspection.Reconstitute("insp-1", "org-1", "asset-1", "C-001",
-			inspection.StatusNew, time.Now(), time.Now())
+			inspection.Status("new"), time.Now(), time.Now())
 
 		repo := &mockRepo{findResult: stored}
-		uc := appinspection.NewTransitionInspectionUseCase(repo)
+		wfRepo := &mockWorkflowRepo{}
+		uc := appinspection.NewTransitionInspectionUseCase(repo, wfRepo, nil)
 
 		_, err := uc.Execute(context.Background(), appinspection.TransitionInspectionRequest{
 			ID:             "insp-1",
 			OrganizationID: "org-1",
-			NewStatus:      inspection.StatusCompleted, // skipping steps
+			NewStatus:      "completed", // skipping steps
 		})
 
 		require.Error(t, err)
@@ -50,12 +52,13 @@ func TestTransitionInspectionUseCase(t *testing.T) {
 
 	t.Run("fails when inspection not found", func(t *testing.T) {
 		repo := &mockRepo{findErr: inspection.ErrNotFound}
-		uc := appinspection.NewTransitionInspectionUseCase(repo)
+		wfRepo := &mockWorkflowRepo{}
+		uc := appinspection.NewTransitionInspectionUseCase(repo, wfRepo, nil)
 
 		_, err := uc.Execute(context.Background(), appinspection.TransitionInspectionRequest{
 			ID:             "missing",
 			OrganizationID: "org-1",
-			NewStatus:      inspection.StatusDamageEntered,
+			NewStatus:      "damage_entered",
 		})
 
 		require.Error(t, err)
@@ -64,17 +67,13 @@ func TestTransitionInspectionUseCase(t *testing.T) {
 
 	t.Run("full flow: new → damage_entered → damage_evaluated → inspected → completed", func(t *testing.T) {
 		stored := inspection.Reconstitute("insp-1", "org-1", "asset-1", "C-001",
-			inspection.StatusNew, time.Now(), time.Now())
+			inspection.Status("new"), time.Now(), time.Now())
 
 		repo := &mockRepo{findResult: stored}
-		uc := appinspection.NewTransitionInspectionUseCase(repo)
+		wfRepo := &mockWorkflowRepo{}
+		uc := appinspection.NewTransitionInspectionUseCase(repo, wfRepo, nil)
 
-		steps := []inspection.Status{
-			inspection.StatusDamageEntered,
-			inspection.StatusDamageEvaluated,
-			inspection.StatusInspected,
-			inspection.StatusCompleted,
-		}
+		steps := []string{"damage_entered", "damage_evaluated", "inspected", "completed"}
 
 		for _, next := range steps {
 			resp, err := uc.Execute(context.Background(), appinspection.TransitionInspectionRequest{
@@ -83,7 +82,7 @@ func TestTransitionInspectionUseCase(t *testing.T) {
 				NewStatus:      next,
 			})
 			require.NoError(t, err, "failed at step %s", next)
-			assert.Equal(t, string(next), resp.Status)
+			assert.Equal(t, next, resp.Status)
 		}
 	})
 }

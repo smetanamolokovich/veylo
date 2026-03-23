@@ -11,16 +11,18 @@ import (
 )
 
 type AuthHandler struct {
-	registerUseCase      *auth.RegisterUseCase
-	loginUseCase         *auth.LoginUseCase
-	refreshTokenUseCase  *auth.RefreshTokenUseCase
+	registerUseCase     *auth.RegisterUseCase
+	loginUseCase        *auth.LoginUseCase
+	refreshTokenUseCase *auth.RefreshTokenUseCase
+	signupUseCase       *auth.SignupUseCase
 }
 
-func NewAuthHandler(registerUC *auth.RegisterUseCase, loginUC *auth.LoginUseCase, refreshUC *auth.RefreshTokenUseCase) *AuthHandler {
+func NewAuthHandler(registerUC *auth.RegisterUseCase, loginUC *auth.LoginUseCase, refreshUC *auth.RefreshTokenUseCase, signupUC *auth.SignupUseCase) *AuthHandler {
 	return &AuthHandler{
 		registerUseCase:     registerUC,
 		loginUseCase:        loginUC,
 		refreshTokenUseCase: refreshUC,
+		signupUseCase:       signupUC,
 	}
 }
 
@@ -97,6 +99,34 @@ type refreshRequest struct {
 	RefreshToken   string `json:"refresh_token"`
 	UserID         string `json:"user_id"`
 	OrganizationID string `json:"organization_id"`
+}
+
+func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		OrgName  string `json:"org_name"`
+		Vertical string `json:"vertical"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
+		FullName string `json:"full_name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	resp, err := h.signupUseCase.Execute(r.Context(), auth.SignupRequest{
+		OrgName:  req.OrgName,
+		Vertical: req.Vertical,
+		Email:    req.Email,
+		Password: req.Password,
+		FullName: req.FullName,
+	})
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, resp)
 }
 
 func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {

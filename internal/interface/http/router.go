@@ -8,7 +8,7 @@ import (
 	"github.com/smetanamolokovich/veylo/pkg/jwt"
 )
 
-func NewRouter(inspectionHandler *handler.InspectionHandler, authHandler *handler.AuthHandler, assetHandler *handler.AssetHandler, findingHandler *handler.FindingHandler, jwtManager *jwt.Manager) *chi.Mux {
+func NewRouter(inspectionHandler *handler.InspectionHandler, authHandler *handler.AuthHandler, assetHandler *handler.AssetHandler, findingHandler *handler.FindingHandler, workflowHandler *handler.WorkflowHandler, orgHandler *handler.OrganizationHandler, jwtManager *jwt.Manager) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)
@@ -22,6 +22,7 @@ func NewRouter(inspectionHandler *handler.InspectionHandler, authHandler *handle
 			r.Get("/", inspectionHandler.List)
 			r.Get("/{id}", inspectionHandler.Get)
 			r.Post("/{id}/transitions", inspectionHandler.Transition)
+			r.Get("/{id}/report", inspectionHandler.GetReport)
 			r.Route("/{inspectionID}/findings", func(r chi.Router) {
 				r.Post("/", findingHandler.Create)
 				r.Get("/", findingHandler.List)
@@ -33,9 +34,22 @@ func NewRouter(inspectionHandler *handler.InspectionHandler, authHandler *handle
 			r.Post("/vehicles", assetHandler.CreateVehicle)
 			r.Get("/{id}", assetHandler.Get)
 		})
+		r.Route("/workflow", func(r chi.Router) {
+			r.Use(authmiddleware.Auth(jwtManager))
+			r.Post("/", workflowHandler.Create)
+			r.Get("/", workflowHandler.Get)
+			r.Post("/statuses", workflowHandler.AddStatus)
+			r.Post("/transitions", workflowHandler.AddTransition)
+		})
+	})
+
+	r.Route("/api/v1/organizations", func(r chi.Router) {
+		r.Use(authmiddleware.Auth(jwtManager))
+		r.Get("/me", orgHandler.GetMe)
 	})
 
 	r.Route("/api/auth", func(r chi.Router) {
+		r.Post("/signup", authHandler.Signup)
 		r.Post("/register", authHandler.Register)
 		r.Post("/login", authHandler.Login)
 		r.Post("/refresh", authHandler.Refresh)

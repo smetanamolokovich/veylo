@@ -7,15 +7,11 @@ import (
 	"time"
 )
 
-type Status string
+// AllowedTransitions maps a status name to the list of statuses it can transition to.
+// Built from a workflow.Workflow to keep the inspection domain decoupled from workflow.
+type AllowedTransitions map[Status][]Status
 
-const (
-	StatusNew             Status = "new"
-	StatusDamageEntered   Status = "damage_entered"
-	StatusDamageEvaluated Status = "damage_evaluated"
-	StatusInspected       Status = "inspected"
-	StatusCompleted       Status = "completed"
-)
+type Status string
 
 type Inspection struct {
 	id             string
@@ -28,9 +24,9 @@ type Inspection struct {
 	events         []Event
 }
 
-func NewInspection(id, organizationID, assetID, contractNumber string) (*Inspection, error) {
-	if id == "" || organizationID == "" || assetID == "" || contractNumber == "" {
-		return nil, errors.New("id, organizationID, assetID and contractNumber are required")
+func NewInspection(id, organizationID, assetID, contractNumber, initialStatus string) (*Inspection, error) {
+	if id == "" || organizationID == "" || assetID == "" || contractNumber == "" || initialStatus == "" {
+		return nil, errors.New("inspection: id, organizationID, assetID, contractNumber and initialStatus are required")
 	}
 
 	now := time.Now().UTC()
@@ -40,7 +36,7 @@ func NewInspection(id, organizationID, assetID, contractNumber string) (*Inspect
 		organizationID: organizationID,
 		assetID:        assetID,
 		contractNumber: contractNumber,
-		status:         StatusNew,
+		status:         Status(initialStatus),
 		createdAt:      now,
 		updatedAt:      now,
 	}, nil
@@ -69,26 +65,14 @@ func (i *Inspection) UpdatedAt() time.Time   { return i.updatedAt }
 func (i *Inspection) Events() []Event { return i.events }
 func (i *Inspection) ClearEvents()    { i.events = nil }
 
-var validTransitions = map[Status][]Status{
-	StatusNew:             {StatusDamageEntered},
-	StatusDamageEntered:   {StatusDamageEvaluated},
-	StatusDamageEvaluated: {StatusInspected},
-	StatusInspected:       {StatusCompleted},
-	StatusCompleted:       {},
-}
-
-func (i *Inspection) Transition(status Status) error {
-	allowed, ok := validTransitions[i.status]
-	if !ok {
+func (i *Inspection) Transition(status Status, allowed AllowedTransitions) error {
+	next, ok := allowed[i.status]
+	if !ok || !slices.Contains(next, status) {
 		return fmt.Errorf("%w: from %s to %s", ErrInvalidTransition, i.status, status)
 	}
 
-	if slices.Contains(allowed, status) {
-		i.events = append(i.events, NewStatusChangedEvent(i.id, i.organizationID, i.status, status))
-		i.status = status
-		i.updatedAt = time.Now().UTC()
-		return nil
-	}
-
-	return fmt.Errorf("%w: from %s to %s", ErrInvalidTransition, i.status, status)
+	i.events = append(i.events, NewStatusChangedEvent(i.id, i.organizationID, i.status, status))
+	i.status = status
+	i.updatedAt = time.Now().UTC()
+	return nil
 }

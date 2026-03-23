@@ -2,8 +2,10 @@ package inspection
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/smetanamolokovich/veylo/internal/domain/inspection"
+	"github.com/smetanamolokovich/veylo/internal/domain/workflow"
 )
 
 type CreateInspectionRequest struct {
@@ -19,21 +21,32 @@ type CreateInspectionResponse struct {
 }
 
 type CreateInspectionUseCase struct {
-	repo inspection.Repository
+	repo         inspection.Repository
+	workflowRepo workflow.Repository
 }
 
-func NewCreateInspectionUseCase(repo inspection.Repository) *CreateInspectionUseCase {
-	return &CreateInspectionUseCase{repo: repo}
+func NewCreateInspectionUseCase(repo inspection.Repository, workflowRepo workflow.Repository) *CreateInspectionUseCase {
+	return &CreateInspectionUseCase{repo: repo, workflowRepo: workflowRepo}
 }
 
 func (uc *CreateInspectionUseCase) Execute(ctx context.Context, req CreateInspectionRequest) (*CreateInspectionResponse, error) {
-	insp, err := inspection.NewInspection(req.ID, req.OrganizationID, req.AssetID, req.ContractNumber)
+	wf, err := uc.workflowRepo.FindByOrganizationID(ctx, req.OrganizationID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("CreateInspection: %w", err)
+	}
+
+	initialStatus, err := wf.InitialStatus()
+	if err != nil {
+		return nil, fmt.Errorf("CreateInspection: %w", err)
+	}
+
+	insp, err := inspection.NewInspection(req.ID, req.OrganizationID, req.AssetID, req.ContractNumber, initialStatus)
+	if err != nil {
+		return nil, fmt.Errorf("CreateInspection: %w", err)
 	}
 
 	if err := uc.repo.Save(ctx, insp); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("CreateInspection: %w", err)
 	}
 
 	return &CreateInspectionResponse{

@@ -11,6 +11,7 @@ import (
 
 	appinspection "github.com/smetanamolokovich/veylo/internal/application/inspection"
 	"github.com/smetanamolokovich/veylo/internal/domain/inspection"
+	"github.com/smetanamolokovich/veylo/internal/domain/report"
 	authmiddleware "github.com/smetanamolokovich/veylo/internal/interface/http/middleware"
 )
 
@@ -19,14 +20,22 @@ type InspectionHandler struct {
 	listInspectionsUseCase  *appinspection.ListInspectionsUseCase
 	getInspectionUseCase    *appinspection.GetInspectionUseCase
 	transitionUseCase       *appinspection.TransitionInspectionUseCase
+	reportRepo              report.Repository
 }
 
-func NewInspectionHandler(createInspectionUseCase *appinspection.CreateInspectionUseCase, listInspectionsUseCase *appinspection.ListInspectionsUseCase, getInspectionUseCase *appinspection.GetInspectionUseCase, transitionUseCase *appinspection.TransitionInspectionUseCase) *InspectionHandler {
+func NewInspectionHandler(
+	createInspectionUseCase *appinspection.CreateInspectionUseCase,
+	listInspectionsUseCase *appinspection.ListInspectionsUseCase,
+	getInspectionUseCase *appinspection.GetInspectionUseCase,
+	transitionUseCase *appinspection.TransitionInspectionUseCase,
+	reportRepo report.Repository,
+) *InspectionHandler {
 	return &InspectionHandler{
 		createInspectionUseCase: createInspectionUseCase,
 		listInspectionsUseCase:  listInspectionsUseCase,
 		getInspectionUseCase:    getInspectionUseCase,
 		transitionUseCase:       transitionUseCase,
+		reportRepo:              reportRepo,
 	}
 }
 
@@ -129,7 +138,7 @@ func (h *InspectionHandler) Transition(w http.ResponseWriter, r *http.Request) {
 	resp, err := h.transitionUseCase.Execute(r.Context(), appinspection.TransitionInspectionRequest{
 		ID:             id,
 		OrganizationID: orgID,
-		NewStatus:      inspection.Status(req.Status),
+		NewStatus:      req.Status,
 	})
 	if err != nil {
 		if errors.Is(err, inspection.ErrNotFound) {
@@ -145,6 +154,31 @@ func (h *InspectionHandler) Transition(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, resp)
+}
+
+func (h *InspectionHandler) GetReport(w http.ResponseWriter, r *http.Request) {
+	orgID, ok := authmiddleware.OrganizationIDFromCtx(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	id := chi.URLParam(r, "id")
+
+	rep, err := h.reportRepo.FindByInspectionID(r.Context(), id, orgID)
+	if err != nil {
+		if errors.Is(err, report.ErrNotFound) {
+			writeError(w, http.StatusNotFound, "report not found — inspection may not be completed yet")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{
+		"url":          rep.URL(),
+		"generated_at": rep.GeneratedAt().Format("2006-01-02T15:04:05Z"),
+	})
 }
 
 func parsePaginationParams(r *http.Request) (page, pageSize int) {
