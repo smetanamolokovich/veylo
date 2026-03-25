@@ -17,7 +17,12 @@ type AuthHandler struct {
 	signupUseCase       *auth.SignupUseCase
 }
 
-func NewAuthHandler(registerUC *auth.RegisterUseCase, loginUC *auth.LoginUseCase, refreshUC *auth.RefreshTokenUseCase, signupUC *auth.SignupUseCase) *AuthHandler {
+func NewAuthHandler(
+	registerUC *auth.RegisterUseCase,
+	loginUC *auth.LoginUseCase,
+	refreshUC *auth.RefreshTokenUseCase,
+	signupUC *auth.SignupUseCase,
+) *AuthHandler {
 	return &AuthHandler{
 		registerUseCase:     registerUC,
 		loginUseCase:        loginUC,
@@ -27,19 +32,14 @@ func NewAuthHandler(registerUC *auth.RegisterUseCase, loginUC *auth.LoginUseCase
 }
 
 type registerRequest struct {
-	Email          string `json:"email"`
-	Password       string `json:"password"`
-	OrganizationID string `json:"organization_id"`
-	FullName       string `json:"full_name"`
-	Role           string `json:"role"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	FullName string `json:"full_name"`
 }
 
-type loginRequest struct {
-	Email          string `json:"email"`
-	Password       string `json:"password"`
-	OrganizationID string `json:"organization_id"`
-}
-
+// Register is onboarding step 1: creates a user without an organization.
+// Accepts: email, password, full_name.
+// Returns: user_id, access_token (org_id claim = ""), refresh_token.
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req registerRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -48,11 +48,9 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp, err := h.registerUseCase.Execute(r.Context(), auth.RegisterRequest{
-		Email:          req.Email,
-		Password:       req.Password,
-		OrganizationID: req.OrganizationID,
-		FullName:       req.FullName,
-		Role:           user.Role(req.Role),
+		Email:    req.Email,
+		Password: req.Password,
+		FullName: req.FullName,
 	})
 	if err != nil {
 		if errors.Is(err, user.ErrAlreadyExists) {
@@ -66,6 +64,11 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, resp)
 }
 
+type loginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req loginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -74,9 +77,8 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp, err := h.loginUseCase.Execute(r.Context(), auth.LoginRequest{
-		Email:          req.Email,
-		Password:       req.Password,
-		OrganizationID: req.OrganizationID,
+		Email:    req.Email,
+		Password: req.Password,
 	})
 	if err != nil {
 		switch {

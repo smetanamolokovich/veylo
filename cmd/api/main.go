@@ -13,6 +13,7 @@ import (
 	appauth "github.com/smetanamolokovich/veylo/internal/application/auth"
 	appfinding "github.com/smetanamolokovich/veylo/internal/application/finding"
 	appinspection "github.com/smetanamolokovich/veylo/internal/application/inspection"
+	apporg "github.com/smetanamolokovich/veylo/internal/application/organization"
 	appreport "github.com/smetanamolokovich/veylo/internal/application/report"
 	appworkflow "github.com/smetanamolokovich/veylo/internal/application/workflow"
 	"github.com/smetanamolokovich/veylo/internal/infrastructure/bcrypt"
@@ -104,10 +105,12 @@ func main() {
 	workflowHandler := handler.NewWorkflowHandler(createWorkflowUC, getWorkflowUC, addStatusUC, addTransitionUC)
 
 	// Organizations
-	orgHandler := handler.NewOrganizationHandler(orgRepo)
+	createOrgUC := apporg.NewCreateOrganizationUseCase(orgRepo, workflowRepo, userRepo, jwtManager)
+	completeOnboardingUC := apporg.NewCompleteOnboardingUseCase(orgRepo)
+	orgHandler := handler.NewOrganizationHandler(orgRepo, createOrgUC, completeOnboardingUC)
 
 	// Auth
-	registerUC := appauth.NewRegisterUseCase(userRepo, hasher)
+	registerUC := appauth.NewRegisterUseCase(userRepo, refreshTokenRepo, hasher, jwtManager)
 	loginUC := appauth.NewLoginUseCase(userRepo, refreshTokenRepo, hasher, jwtManager)
 	refreshUC := appauth.NewRefreshTokenUseCase(refreshTokenRepo, userRepo, jwtManager, hasher)
 	signupUC := appauth.NewSignupUseCase(orgRepo, workflowRepo, userRepo, refreshTokenRepo, hasher, jwtManager)

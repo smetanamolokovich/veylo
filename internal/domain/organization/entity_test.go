@@ -70,7 +70,7 @@ func TestOrganization_Reconstitute(t *testing.T) {
 	createdAt := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	updatedAt := time.Date(2024, 6, 1, 0, 0, 0, 0, time.UTC)
 
-	org := organization.Reconstitute("org-99", "Fleet Co", organization.VerticalVehicle, createdAt, updatedAt)
+	org := organization.Reconstitute("org-99", "Fleet Co", organization.VerticalVehicle, nil, createdAt, updatedAt)
 
 	assert.Equal(t, "org-99", org.ID())
 	assert.Equal(t, "Fleet Co", org.Name())

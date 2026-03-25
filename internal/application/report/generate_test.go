@@ -80,6 +80,9 @@ type mockOrgRepo struct {
 func (m *mockOrgRepo) FindByID(ctx context.Context, id string) (*organization.Organization, error) {
 	return m.findByIDFn(ctx, id)
 }
+func (m *mockOrgRepo) FindByUserID(ctx context.Context, userID string) (*organization.Organization, error) {
+	panic("not implemented in test")
+}
 func (m *mockOrgRepo) Save(ctx context.Context, org *organization.Organization) error {
 	panic("not implemented in test")
 }
@@ -145,7 +148,7 @@ func testVehicleAsset(id, orgID string) *asset.Asset {
 func testOrg(id string) *organization.Organization {
 	return organization.Reconstitute(
 		id, "ACME Leasing", organization.VerticalVehicle,
-		time.Now(), time.Now(),
+		nil, time.Now(), time.Now(),
 	)
 }
 

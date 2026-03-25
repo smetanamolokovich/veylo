@@ -45,7 +45,9 @@ func NewRouter(inspectionHandler *handler.InspectionHandler, authHandler *handle
 
 	r.Route("/api/v1/organizations", func(r chi.Router) {
 		r.Use(authmiddleware.Auth(jwtManager))
+		r.Post("/", orgHandler.Create)
 		r.Get("/me", orgHandler.GetMe)
+		r.Post("/me/onboarding", orgHandler.CompleteOnboarding)
 	})
 
 	r.Route("/api/auth", func(r chi.Router) {

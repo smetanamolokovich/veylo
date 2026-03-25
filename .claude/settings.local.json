@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -n \"func.*Manager.*Generate\" /Users/masterwork/code/veylo/pkg/jwt/*.go)"
+    ]
+  },
+  "disabledMcpjsonServers": [
+    "shadcn"
+  ]
+}

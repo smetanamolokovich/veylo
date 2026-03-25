@@ -21,11 +21,12 @@ func (v Vertical) IsValid() bool {
 }
 
 type Organization struct {
-	id        string
-	name      string
-	vertical  Vertical
-	createdAt time.Time
-	updatedAt time.Time
+	id                   string
+	name                 string
+	vertical             Vertical
+	onboardingCompletedAt *time.Time
+	createdAt            time.Time
+	updatedAt            time.Time
 }
 
 func NewOrganization(id, name string, vertical Vertical) (*Organization, error) {
@@ -45,18 +46,26 @@ func NewOrganization(id, name string, vertical Vertical) (*Organization, error) 
 	}, nil
 }
 
-func Reconstitute(id, name string, vertical Vertical, createdAt, updatedAt time.Time) *Organization {
+func Reconstitute(id, name string, vertical Vertical, onboardingCompletedAt *time.Time, createdAt, updatedAt time.Time) *Organization {
 	return &Organization{
-		id:        id,
-		name:      name,
-		vertical:  vertical,
-		createdAt: createdAt,
-		updatedAt: updatedAt,
+		id:                   id,
+		name:                 name,
+		vertical:             vertical,
+		onboardingCompletedAt: onboardingCompletedAt,
+		createdAt:            createdAt,
+		updatedAt:            updatedAt,
 	}
 }
 
-func (o *Organization) ID() string        { return o.id }
-func (o *Organization) Name() string      { return o.name }
-func (o *Organization) Vertical() Vertical { return o.vertical }
-func (o *Organization) CreatedAt() time.Time { return o.createdAt }
-func (o *Organization) UpdatedAt() time.Time { return o.updatedAt }
+func (o *Organization) CompleteOnboarding() {
+	now := time.Now().UTC()
+	o.onboardingCompletedAt = &now
+	o.updatedAt = now
+}
+
+func (o *Organization) ID() string                          { return o.id }
+func (o *Organization) Name() string                        { return o.name }
+func (o *Organization) Vertical() Vertical                  { return o.vertical }
+func (o *Organization) OnboardingCompletedAt() *time.Time   { return o.onboardingCompletedAt }
+func (o *Organization) CreatedAt() time.Time                { return o.createdAt }
+func (o *Organization) UpdatedAt() time.Time                { return o.updatedAt }

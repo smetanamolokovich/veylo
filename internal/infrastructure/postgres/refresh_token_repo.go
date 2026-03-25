@@ -18,6 +18,12 @@ func NewRefreshTokenRepository(db *sql.DB) *RefreshTokenRepository {
 }
 
 func (r *RefreshTokenRepository) Save(ctx context.Context, token *refreshtoken.RefreshToken) error {
+	var orgID *string
+	if token.OrganizationID() != "" {
+		v := token.OrganizationID()
+		orgID = &v
+	}
+
 	query := `
 		INSERT INTO refresh_tokens (id, user_id, organization_id, token_hash, expires_at, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6)
@@ -25,7 +31,7 @@ func (r *RefreshTokenRepository) Save(ctx context.Context, token *refreshtoken.R
 	_, err := r.db.ExecContext(ctx, query,
 		token.ID(),
 		token.UserID(),
-		token.OrganizationID(),
+		orgID,
 		token.TokenHash(),
 		token.ExpiresAt(),
 		token.CreatedAt(),
@@ -48,7 +54,7 @@ func (r *RefreshTokenRepository) FindByUserID(ctx context.Context, userID, orgID
 	var (
 		id             string
 		uid            string
-		organizationID string
+		organizationID sql.NullString
 		tokenHash      string
 		expiresAt      time.Time
 		createdAt      time.Time
@@ -62,7 +68,12 @@ func (r *RefreshTokenRepository) FindByUserID(ctx context.Context, userID, orgID
 		return nil, fmt.Errorf("RefreshTokenRepository.FindByUserID: %w", err)
 	}
 
-	return refreshtoken.Reconstitute(id, uid, organizationID, tokenHash, expiresAt, createdAt), nil
+	oid := ""
+	if organizationID.Valid {
+		oid = organizationID.String
+	}
+
+	return refreshtoken.Reconstitute(id, uid, oid, tokenHash, expiresAt, createdAt), nil
 }
 
 func (r *RefreshTokenRepository) DeleteByUserID(ctx context.Context, userID, orgID string) error {

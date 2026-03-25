@@ -56,6 +56,27 @@ func NewUser(id, organizationID, email, passwordHash, fullName string, role Role
 	}, nil
 }
 
+// NewUserWithoutOrg creates a user that is not yet linked to an organization.
+// Used during onboarding step 1 (register), before the org is created.
+func NewUserWithoutOrg(id, email, passwordHash, fullName string) (*User, error) {
+	if id == "" || email == "" || passwordHash == "" || fullName == "" {
+		return nil, fmt.Errorf("user: id, email, password and full_name are required")
+	}
+
+	now := time.Now().UTC()
+
+	return &User{
+		id:           id,
+		email:        email,
+		passwordHash: passwordHash,
+		fullName:     fullName,
+		role:         RoleAdmin,
+		status:       StatusActive,
+		createdAt:    now,
+		updatedAt:    now,
+	}, nil
+}
+
 func Reconstitute(id, organizationID, email, passwordHash, fullName string, role Role, status Status, createdAt, updatedAt time.Time) *User {
 	return &User{
 		id:             id,
@@ -68,6 +89,12 @@ func Reconstitute(id, organizationID, email, passwordHash, fullName string, role
 		createdAt:      createdAt,
 		updatedAt:      updatedAt,
 	}
+}
+
+// SetOrganizationID links the user to an organization. Called during org creation.
+func (u *User) SetOrganizationID(orgID string) {
+	u.organizationID = orgID
+	u.updatedAt = time.Now().UTC()
 }
 
 func (u *User) ID() string             { return u.id }

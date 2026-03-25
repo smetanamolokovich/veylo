@@ -18,9 +18,8 @@ type LoginUseCase struct {
 }
 
 type LoginRequest struct {
-	Email          string
-	Password       string
-	OrganizationID string
+	Email    string
+	Password string
 }
 
 type LoginResponse struct {
@@ -40,7 +39,7 @@ func NewLoginUseCase(userRepo user.Repository, refreshTokenRepo refreshtoken.Rep
 }
 
 func (uc *LoginUseCase) Execute(ctx context.Context, req LoginRequest) (*LoginResponse, error) {
-	existing, err := uc.userRepo.FindByEmail(ctx, req.Email, req.OrganizationID)
+	existing, err := uc.userRepo.FindByEmailNoOrg(ctx, req.Email)
 	if err != nil {
 		return nil, err
 	}

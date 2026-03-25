@@ -37,7 +37,24 @@ func (m *mockUserRepo) FindByID(_ context.Context, id, _ string) (*user.User, er
 	return nil, user.ErrNotFound
 }
 
+func (m *mockUserRepo) FindByIDOnly(_ context.Context, id string) (*user.User, error) {
+	for _, u := range m.users {
+		if u.ID() == id {
+			return u, nil
+		}
+	}
+	return nil, user.ErrNotFound
+}
+
 func (m *mockUserRepo) FindByEmail(_ context.Context, email, _ string) (*user.User, error) {
+	u, ok := m.users[email]
+	if !ok {
+		return nil, user.ErrNotFound
+	}
+	return u, nil
+}
+
+func (m *mockUserRepo) FindByEmailNoOrg(_ context.Context, email string) (*user.User, error) {
 	u, ok := m.users[email]
 	if !ok {
 		return nil, user.ErrNotFound
@@ -104,40 +121,62 @@ func (m *mockJWTManager) GenerateRefresh() (string, error) {
 // --- Register tests ---
 
 func TestRegisterUseCase(t *testing.T) {
-	t.Run("registers user successfully", func(t *testing.T) {
+	t.Run("registers user successfully — happy path", func(t *testing.T) {
 		repo := newMockUserRepo()
-		uc := auth.NewRegisterUseCase(repo, &mockHasher{})
+		rtRepo := newMockRefreshTokenRepo()
+		uc := auth.NewRegisterUseCase(repo, rtRepo, &mockHasher{}, &mockJWTManager{})
 
 		resp, err := uc.Execute(context.Background(), auth.RegisterRequest{
-			OrganizationID: "org-1",
-			Email:          "test@example.com",
-			Password:       "password",
-			FullName:       "Test User",
-			Role:           user.RoleInspector,
+			Email:    "test@example.com",
+			Password: "password",
+			FullName: "Test User",
 		})
 
 		require.NoError(t, err)
-		assert.NotNil(t, resp)
-		assert.Equal(t, "test@example.com", resp.Email)
+		require.NotNil(t, resp)
+		assert.NotEmpty(t, resp.UserID)
+		assert.NotEmpty(t, resp.AccessToken)
+		assert.NotEmpty(t, resp.RefreshToken)
 
-		saved, _ := repo.FindByEmail(context.Background(), "test@example.com", "org-1")
+		saved, err := repo.FindByEmailNoOrg(context.Background(), "test@example.com")
+		require.NoError(t, err)
 		require.NotNil(t, saved)
 		assert.Equal(t, "hashed-password", saved.PasswordHash())
 	})
 
+	t.Run("stores a refresh token after registration", func(t *testing.T) {
+		repo := newMockUserRepo()
+		rtRepo := newMockRefreshTokenRepo()
+		uc := auth.NewRegisterUseCase(repo, rtRepo, &mockHasher{}, &mockJWTManager{})
+
+		resp, err := uc.Execute(context.Background(), auth.RegisterRequest{
+			Email:    "rt@example.com",
+			Password: "password",
+			FullName: "RT User",
+		})
+
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+
+		// The raw refresh token returned should have been saved (hashed) in the repo.
+		rt, err := rtRepo.FindByUserID(context.Background(), resp.UserID, "")
+		require.NoError(t, err)
+		assert.NotNil(t, rt)
+	})
+
 	t.Run("fails if email already exists", func(t *testing.T) {
 		repo := newMockUserRepo()
-		existing, _ := user.NewUser("id-1", "org-1", "test@example.com", "hash", "Test", user.RoleInspector)
-		repo.Save(context.Background(), existing)
+		// Pre-populate with a user that has no org (simulating a previously registered user).
+		existing, _ := user.NewUserWithoutOrg("id-1", "dup@example.com", "hashed-pass", "Existing User")
+		_ = repo.Save(context.Background(), existing)
 
-		uc := auth.NewRegisterUseCase(repo, &mockHasher{})
+		rtRepo := newMockRefreshTokenRepo()
+		uc := auth.NewRegisterUseCase(repo, rtRepo, &mockHasher{}, &mockJWTManager{})
 
 		_, err := uc.Execute(context.Background(), auth.RegisterRequest{
-			OrganizationID: "org-1",
-			Email:          "test@example.com",
-			Password:       "password",
-			FullName:       "Test User",
-			Role:           user.RoleInspector,
+			Email:    "dup@example.com",
+			Password: "password",
+			FullName: "Dup User",
 		})
 
 		require.Error(t, err)
@@ -145,16 +184,15 @@ func TestRegisterUseCase(t *testing.T) {
 	})
 
 	t.Run("fails if email is empty", func(t *testing.T) {
-		uc := auth.NewRegisterUseCase(newMockUserRepo(), &mockHasher{})
+		uc := auth.NewRegisterUseCase(newMockUserRepo(), newMockRefreshTokenRepo(), &mockHasher{}, &mockJWTManager{})
 
 		_, err := uc.Execute(context.Background(), auth.RegisterRequest{
-			OrganizationID: "org-1",
-			Email:          "",
-			Password:       "password",
-			FullName:       "Test User",
-			Role:           user.RoleInspector,
+			Email:    "",
+			Password: "password",
+			FullName: "Test User",
 		})
 
+		// NewUserWithoutOrg validates email — expect an error.
 		assert.Error(t, err)
 	})
 }
@@ -171,9 +209,8 @@ func TestLoginUseCase(t *testing.T) {
 		uc := auth.NewLoginUseCase(repo, rtRepo, &mockHasher{}, &mockJWTManager{})
 
 		resp, err := uc.Execute(context.Background(), auth.LoginRequest{
-			Email:          "test@example.com",
-			Password:       "password",
-			OrganizationID: "org-1",
+			Email:    "test@example.com",
+			Password: "password",
 		})
 
 		require.NoError(t, err)
@@ -191,9 +228,8 @@ func TestLoginUseCase(t *testing.T) {
 		uc := auth.NewLoginUseCase(repo, rtRepo, &mockHasher{}, &mockJWTManager{})
 
 		_, err := uc.Execute(context.Background(), auth.LoginRequest{
-			Email:          "test@example.com",
-			Password:       "wrong-password",
-			OrganizationID: "org-1",
+			Email:    "test@example.com",
+			Password: "wrong-password",
 		})
 
 		require.Error(t, err)
@@ -204,9 +240,8 @@ func TestLoginUseCase(t *testing.T) {
 		uc := auth.NewLoginUseCase(newMockUserRepo(), newMockRefreshTokenRepo(), &mockHasher{}, &mockJWTManager{})
 
 		_, err := uc.Execute(context.Background(), auth.LoginRequest{
-			Email:          "notfound@example.com",
-			Password:       "password",
-			OrganizationID: "org-1",
+			Email:    "notfound@example.com",
+			Password: "password",
 		})
 
 		require.Error(t, err)
@@ -222,9 +257,8 @@ func TestLoginUseCase(t *testing.T) {
 		uc := auth.NewLoginUseCase(repo, rtRepo, &mockHasher{}, &mockJWTManager{})
 
 		_, err := uc.Execute(context.Background(), auth.LoginRequest{
-			Email:          "blocked@example.com",
-			Password:       "password",
-			OrganizationID: "org-1",
+			Email:    "blocked@example.com",
+			Password: "password",
 		})
 
 		require.Error(t, err)
@@ -239,9 +273,8 @@ func TestLoginUseCase(t *testing.T) {
 
 		uc := auth.NewLoginUseCase(repo, rtRepo, &mockHasher{}, &mockJWTManager{})
 		_, err := uc.Execute(context.Background(), auth.LoginRequest{
-			Email:          "test@example.com",
-			Password:       "password",
-			OrganizationID: "org-1",
+			Email:    "test@example.com",
+			Password: "password",
 		})
 
 		require.NoError(t, err)

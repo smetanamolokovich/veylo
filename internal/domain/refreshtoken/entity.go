@@ -15,8 +15,8 @@ type RefreshToken struct {
 }
 
 func NewRefreshToken(id, userID, organizationID, tokenHash string, expiresAt time.Time) (*RefreshToken, error) {
-	if id == "" || userID == "" || organizationID == "" || tokenHash == "" {
-		return nil, fmt.Errorf("invalid input: all fields are required")
+	if id == "" || userID == "" || tokenHash == "" {
+		return nil, fmt.Errorf("invalid input: id, userID and tokenHash are required")
 	}
 
 	now := time.Now().UTC()

@@ -17,10 +17,18 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 	return &UserRepository{db: db}
 }
 
-func (r *UserRepository) Save(ctx context.Context, user *user.User) error {
+func (r *UserRepository) Save(ctx context.Context, u *user.User) error {
+	// organization_id is nullable — store NULL when empty.
+	var orgID *string
+	if u.OrganizationID() != "" {
+		v := u.OrganizationID()
+		orgID = &v
+	}
+
 	query := `INSERT INTO users (id, organization_id, email, password_hash, full_name, role, status, updated_at, created_at)
 				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 				ON CONFLICT (id) DO UPDATE SET
+						organization_id = EXCLUDED.organization_id,
 						password_hash = EXCLUDED.password_hash,
 						full_name = EXCLUDED.full_name,
 						role = EXCLUDED.role,
@@ -29,15 +37,15 @@ func (r *UserRepository) Save(ctx context.Context, user *user.User) error {
 		`
 
 	_, err := r.db.ExecContext(ctx, query,
-		user.ID(),
-		user.OrganizationID(),
-		user.Email(),
-		user.PasswordHash(),
-		user.FullName(),
-		user.Role(),
-		user.Status(),
-		user.UpdatedAt(),
-		user.CreatedAt(),
+		u.ID(),
+		orgID,
+		u.Email(),
+		u.PasswordHash(),
+		u.FullName(),
+		u.Role(),
+		u.Status(),
+		u.UpdatedAt(),
+		u.CreatedAt(),
 	)
 	if err != nil {
 		return fmt.Errorf("UserRepository.Save: %w", err)
@@ -55,12 +63,30 @@ func (r *UserRepository) FindByEmail(ctx context.Context, email, organizationID 
 	return scanUser(row)
 }
 
+func (r *UserRepository) FindByEmailNoOrg(ctx context.Context, email string) (*user.User, error) {
+	query := `SELECT id, organization_id, email, password_hash, full_name, role, status, updated_at, created_at
+				FROM users
+				WHERE email = $1`
+
+	row := r.db.QueryRowContext(ctx, query, email)
+	return scanUser(row)
+}
+
 func (r *UserRepository) FindByID(ctx context.Context, id, organizationID string) (*user.User, error) {
 	query := `SELECT id, organization_id, email, password_hash, full_name, role, status, updated_at, created_at
 				FROM users
 				WHERE id = $1 AND organization_id = $2`
 
 	row := r.db.QueryRowContext(ctx, query, id, organizationID)
+	return scanUser(row)
+}
+
+func (r *UserRepository) FindByIDOnly(ctx context.Context, id string) (*user.User, error) {
+	query := `SELECT id, organization_id, email, password_hash, full_name, role, status, updated_at, created_at
+				FROM users
+				WHERE id = $1`
+
+	row := r.db.QueryRowContext(ctx, query, id)
 	return scanUser(row)
 }
 
@@ -91,7 +117,7 @@ func (r *UserRepository) FindAllByOrganization(ctx context.Context, organization
 func scanUser(s scanner) (*user.User, error) {
 	var (
 		id             string
-		organizationID string
+		organizationID sql.NullString
 		email          string
 		passwordHash   string
 		fullName       string
@@ -109,5 +135,10 @@ func scanUser(s scanner) (*user.User, error) {
 		return nil, fmt.Errorf("scanUser: %w", err)
 	}
 
-	return user.Reconstitute(id, organizationID, email, passwordHash, fullName, user.Role(role), user.Status(status), updatedAt, createdAt), nil
+	orgID := ""
+	if organizationID.Valid {
+		orgID = organizationID.String
+	}
+
+	return user.Reconstitute(id, orgID, email, passwordHash, fullName, user.Role(role), user.Status(status), updatedAt, createdAt), nil
 }
