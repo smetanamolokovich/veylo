@@ -16,3 +16,13 @@ bin/
 
 # Go
 *.test
+
+node_modules/
+
+# Web
+web/.next/
+web/.env.local
+web/.env.prod
+web/.env.dev
+web/next-env.d.ts
+web/tsconfig.tsbuildinfo
