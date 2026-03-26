@@ -10,6 +10,7 @@ system (Ayvens internal tool). Key insight: leasing companies build this in-hous
 no good SaaS product exists. Veylo fills that gap — and beyond vehicles.
 
 **Target markets (v1: vehicle vertical):**
+
 - Leasing companies (return inspection)
 - Car rental (post-rental inspection)
 - Corporate fleet (scheduled inspections)
@@ -17,6 +18,7 @@ no good SaaS product exists. Veylo fills that gap — and beyond vehicles.
 - Car dealers (trade-in acceptance)
 
 **Future verticals (v2+):**
+
 - Real estate (apartment handover)
 - Industrial equipment
 - Aviation, marine
@@ -42,6 +44,8 @@ no good SaaS product exists. Veylo fills that gap — and beyond vehicles.
 
 ## Tech Stack
 
+**Backend:**
+
 - **Language**: Go 1.23+
 - **Architecture**: Domain-Driven Design (DDD)
 - **Database**: PostgreSQL
@@ -51,6 +55,25 @@ no good SaaS product exists. Veylo fills that gap — and beyond vehicles.
 - **Auth**: JWT (access + refresh token rotation)
 - **Config**: envconfig
 - **Testing**: testify + testcontainers (integration)
+
+**Frontend:**
+
+- **Framework**: Next.js (App Router)
+- **UI library**: shadcn/ui built on **Base UI** (`@base-ui/react`) — NOT Radix UI
+- **Styling**: Tailwind CSS v4
+- **State**: TanStack Query (server state), React state (local)
+- **Forms**: React Hook Form + Zod
+- **HTTP client**: ky
+
+**Important Base UI note:** Components like `Button` do NOT support the `asChild` prop (that's Radix-only).
+To make a link look like a button, use `buttonVariants` directly on `<Link>`:
+
+```tsx
+import { buttonVariants } from '@/components/ui/button'
+;<Link href="/foo" className={buttonVariants({ variant: 'default' })}>
+  Label
+</Link>
+```
 
 ## Architecture: DDD Layers
 
@@ -125,15 +148,18 @@ Dependency direction: `interface → application → domain ← infrastructure`
 Two-level model:
 
 **Level 1 — System stages (fixed, drives business logic):**
+
 ```
 ENTRY → EVALUATION → REVIEW → FINAL
 ```
+
 - `ENTRY`: findings/damages can be added
 - `EVALUATION`: findings are being assessed (costs, severity)
 - `REVIEW`: manager review before closing
 - `FINAL`: triggers PDF report generation, webhooks, integrations
 
 **Level 2 — Statuses (configurable per organization):**
+
 ```
 Each org maps their own status names to system stages.
 
@@ -152,6 +178,7 @@ not status names. This is what makes veylo sellable to any company.
 ### Workflow Configuration
 
 Each organization defines:
+
 - Status names and descriptions
 - Allowed transitions between statuses
 - Which system stage each status maps to
@@ -160,6 +187,7 @@ Each organization defines:
 ### Roles & Permissions (RBAC)
 
 Predefined roles per organization:
+
 - **ADMIN**: full access, manage users, configure workflow
 - **MANAGER**: create/manage inspections, approve transitions, view reports
 - **INSPECTOR**: create inspections, enter findings/damages
@@ -178,6 +206,7 @@ JWT token carries `organization_id` and `user_id` — no extra DB lookup per req
 `Asset` = the thing being inspected. Has a `type` and `vertical`-specific attributes.
 
 Vehicle asset fields (v1):
+
 - VIN (validated, 17 chars)
 - License plate (sanitized, unique per org)
 - Brand, model, body type, fuel type, transmission
@@ -188,6 +217,7 @@ Asset uniqueness is per organization (same VIN can exist in different orgs).
 ### Finding (Damage)
 
 Universal damage/issue on an asset:
+
 - Location (body area, coordinates on image)
 - Type and description
 - Images
@@ -218,6 +248,68 @@ When inspection reaches `FINAL` stage, fire configurable webhooks.
 Replaces hardcoded `sentToAvyensAt` field from the original system.
 Each organization configures their own webhook endpoints.
 
+## Frontend Pages
+
+### Roles & their primary tasks
+
+| Role          | Daily job                                                                                |
+| ------------- | ---------------------------------------------------------------------------------------- |
+| **INSPECTOR** | Opens app, creates inspection for a vehicle, walks around car, records findings + photos |
+| **EVALUATOR** | Opens inspections in EVALUATION stage, assesses each finding (cost, repair method)       |
+| **MANAGER**   | Reviews inspections in REVIEW stage, approves or returns                                 |
+| **ADMIN**     | Configures system, manages team                                                          |
+
+### Page map
+
+**Public `(auth)`**
+
+```
+/                          Landing
+/login                     Sign in
+/signup                    Register (step 1)
+/onboarding                Create workspace + invite team (steps 2–3)
+/invite/[token]            Accept team invitation
+```
+
+**App `(app)` — authenticated**
+
+```
+/dashboard                 Role-aware task queue + overview stats
+
+/inspections               List — filterable by status/stage/assignee
+/inspections/new           Create inspection (select vehicle, enter contract details)
+/inspections/[id]          Detail — findings list, status transitions, audit trail
+                           EVALUATOR assesses findings here
+                           MANAGER approves/returns here
+
+/vehicles                  Vehicle registry
+/vehicles/new              Add vehicle
+/vehicles/[id]             Vehicle detail + inspection history
+
+/team                      Team members list + invite (ADMIN/MANAGER)
+
+/settings/workflow         Configure statuses & transitions — core differentiator
+/settings                  Organization info
+```
+
+### Priority order (by business value)
+
+```
+1. /inspections + /inspections/[id]     core loop
+2. /inspections/new + /vehicles/new     data entry
+3. /dashboard                           role-aware queue
+4. /settings/workflow                   unique competitive advantage
+5. /team                                required for multi-user orgs
+6. /vehicles                            vehicle registry
+```
+
+### Key design decisions
+
+- **Findings live inside `/inspections/[id]`**, not on a separate page. The inspector adds them inline; the evaluator assesses them inline.
+- **`/dashboard` is role-aware** — INSPECTOR sees their queue, EVALUATOR sees findings to assess, MANAGER sees inspections to approve. Not just generic stats.
+- **`/settings/workflow`** is what gets sold to leasing companies. Must be polished.
+- Vehicle creation can happen inline during `/inspections/new` (quick-add) without leaving the flow.
+
 ## Security
 
 ### Refresh Token Rotation
@@ -236,14 +328,14 @@ Each organization configures their own webhook endpoints.
 
 ## Improvements Over Original System (Ayvens)
 
-| Ayvens (original) | Veylo |
-|---|---|
-| Single-tenant, no organizationId | Multi-tenant, organizationId on all entities |
-| Statuses hardcoded in code | Configurable per organization |
-| Hardcoded `sentToAvyensAt` field | Generic webhook/integration layer |
-| HTTP exceptions in domain layer | Typed domain errors |
-| Hard delete | Soft delete with audit trail |
-| No token rotation | Refresh token rotation |
-| Ayvens-specific field names | Generic, vertical-agnostic naming |
-| Vehicle only | Generic asset model, vehicle is first vertical |
-| Single company forever | Sold to any fleet/leasing/rental company |
+| Ayvens (original)                | Veylo                                          |
+| -------------------------------- | ---------------------------------------------- |
+| Single-tenant, no organizationId | Multi-tenant, organizationId on all entities   |
+| Statuses hardcoded in code       | Configurable per organization                  |
+| Hardcoded `sentToAvyensAt` field | Generic webhook/integration layer              |
+| HTTP exceptions in domain layer  | Typed domain errors                            |
+| Hard delete                      | Soft delete with audit trail                   |
+| No token rotation                | Refresh token rotation                         |
+| Ayvens-specific field names      | Generic, vertical-agnostic naming              |
+| Vehicle only                     | Generic asset model, vehicle is first vertical |
+| Single company forever           | Sold to any fleet/leasing/rental company       |

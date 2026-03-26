@@ -8,8 +8,12 @@ import { Button } from "@/components/ui/button"
 import { createOrganizationSchema, type CreateOrganizationFormValues } from "../schemas"
 import { useCreateOrganization } from "../hooks/use-create-organization"
 
-export function CreateOrganizationForm() {
-  const { mutate, isPending, error } = useCreateOrganization()
+interface Props {
+  onComplete?: () => void
+}
+
+export function CreateOrganizationForm({ onComplete }: Props) {
+  const { mutate, isPending, error } = useCreateOrganization(onComplete)
 
   const {
     register,

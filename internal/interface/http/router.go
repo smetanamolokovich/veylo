@@ -8,7 +8,7 @@ import (
 	"github.com/smetanamolokovich/veylo/pkg/jwt"
 )
 
-func NewRouter(inspectionHandler *handler.InspectionHandler, authHandler *handler.AuthHandler, assetHandler *handler.AssetHandler, findingHandler *handler.FindingHandler, workflowHandler *handler.WorkflowHandler, orgHandler *handler.OrganizationHandler, jwtManager *jwt.Manager) *chi.Mux {
+func NewRouter(inspectionHandler *handler.InspectionHandler, authHandler *handler.AuthHandler, assetHandler *handler.AssetHandler, findingHandler *handler.FindingHandler, workflowHandler *handler.WorkflowHandler, orgHandler *handler.OrganizationHandler, invitationHandler *handler.InvitationHandler, jwtManager *jwt.Manager) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)
@@ -48,6 +48,7 @@ func NewRouter(inspectionHandler *handler.InspectionHandler, authHandler *handle
 		r.Post("/", orgHandler.Create)
 		r.Get("/me", orgHandler.GetMe)
 		r.Post("/me/onboarding", orgHandler.CompleteOnboarding)
+		r.Post("/me/invitations", invitationHandler.Create)
 	})
 
 	r.Route("/api/auth", func(r chi.Router) {
@@ -55,6 +56,8 @@ func NewRouter(inspectionHandler *handler.InspectionHandler, authHandler *handle
 		r.Post("/register", authHandler.Register)
 		r.Post("/login", authHandler.Login)
 		r.Post("/refresh", authHandler.Refresh)
+		r.Get("/invite/{token}", invitationHandler.GetByToken)
+		r.Post("/invite/{token}/accept", invitationHandler.Accept)
 	})
 
 	return r

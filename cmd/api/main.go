@@ -13,6 +13,7 @@ import (
 	appauth "github.com/smetanamolokovich/veylo/internal/application/auth"
 	appfinding "github.com/smetanamolokovich/veylo/internal/application/finding"
 	appinspection "github.com/smetanamolokovich/veylo/internal/application/inspection"
+	appinvitation "github.com/smetanamolokovich/veylo/internal/application/invitation"
 	apporg "github.com/smetanamolokovich/veylo/internal/application/organization"
 	appreport "github.com/smetanamolokovich/veylo/internal/application/report"
 	appworkflow "github.com/smetanamolokovich/veylo/internal/application/workflow"
@@ -134,7 +135,14 @@ func main() {
 	transitionInspection := appinspection.NewTransitionInspectionUseCase(inspectionRepo, workflowRepo, generateReportUC)
 	inspectionHandler := handler.NewInspectionHandler(createInspection, listInspections, getInspection, transitionInspection, reportRepo)
 
-	router := httpinterface.NewRouter(inspectionHandler, authHandler, assetHandler, findingHandler, workflowHandler, orgHandler, jwtManager)
+	// Invitations
+	invitationRepo := postgres.NewInvitationRepository(db)
+	inviteUserUC := appinvitation.NewInviteUserUseCase(invitationRepo, orgRepo)
+	getInvitationUC := appinvitation.NewGetInvitationUseCase(invitationRepo, orgRepo)
+	acceptInvitationUC := appinvitation.NewAcceptInvitationUseCase(invitationRepo, userRepo, refreshTokenRepo, hasher, jwtManager)
+	invitationHandler := handler.NewInvitationHandler(inviteUserUC, getInvitationUC, acceptInvitationUC)
+
+	router := httpinterface.NewRouter(inspectionHandler, authHandler, assetHandler, findingHandler, workflowHandler, orgHandler, invitationHandler, jwtManager)
 
 	addr := ":8080"
 	log.Info("starting server", "addr", addr)
