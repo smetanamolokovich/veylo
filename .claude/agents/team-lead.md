@@ -8,6 +8,10 @@ tools:
   - Bash
   - Agent
   - AskUserQuestion
+  - Write
+  - mcp__notion__notion-create-pages
+  - mcp__notion__notion-update-page
+  - mcp__notion__notion-search
 model: opus
 color: orange
 ---
@@ -48,6 +52,10 @@ When you receive a vague request (e.g. "add team management to settings"):
    - Are there dependencies on existing features?
    - What roles are involved?
    - Any deadline or priority?
+
+### Phase 1.5: Check existing tasks
+
+Before spawning agents, search Notion for existing tasks: `mcp__notion__notion-search` with the feature name. If a task page exists — use its URL as context for the whole pipeline. If no — PM will create it in Notion.
 
 ### Phase 2: Product analysis + UX design
 
@@ -93,6 +101,17 @@ After approval, run agents in this order:
 6. @reviewer (code review, security, DDD boundaries, multi-tenancy)
    ↓ output = QA report
 ```
+
+**Notion task lifecycle:**
+
+Tasks live in Notion: `https://www.notion.so/c4c03e279c134197a904a712ea235c53`
+
+- PM creates task with `status: todo`
+- Architect appends architecture plan to the task page
+- Backend/frontend set `status: in_progress` when they start
+- Backend/frontend set `status: review` when done implementing
+- Reviewer sets `status: done` or `status: blocked`
+- Always pass the Notion task page URL to each agent in your prompt
 
 **Orchestration rules:**
 - Spawn agents via `Agent` tool with matching `subagent_type`

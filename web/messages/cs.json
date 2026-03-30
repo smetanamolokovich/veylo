@@ -1,121 +1,121 @@
 {
-  "common": {
-    "save": "Uložit",
-    "cancel": "Zrušit",
-    "delete": "Smazat",
-    "loading": "Načítání...",
-    "error": "Něco se pokazilo",
-    "notFound": "Nenalezeno",
-    "confirm": "Potvrdit",
-    "back": "Zpět",
-    "create": "Vytvořit",
-    "edit": "Upravit",
-    "search": "Hledat",
-    "noResults": "Žádné výsledky"
-  },
-  "auth": {
-    "login": {
-      "title": "Přihlaste se do Veylo",
-      "email": "E-mail",
-      "password": "Heslo",
-      "submit": "Přihlásit se",
-      "noAccount": "Nemáte účet?",
-      "signupLink": "Vytvořit účet"
+    "common": {
+        "save": "Uložit",
+        "cancel": "Zrušit",
+        "delete": "Smazat",
+        "loading": "Načítání...",
+        "error": "Něco se pokazilo",
+        "notFound": "Nenalezeno",
+        "confirm": "Potvrdit",
+        "back": "Zpět",
+        "create": "Vytvořit",
+        "edit": "Upravit",
+        "search": "Hledat",
+        "noResults": "Žádné výsledky"
     },
-    "signup": {
-      "title": "Vytvořte si účet",
-      "orgName": "Název organizace",
-      "vertical": "Odvětví",
-      "email": "E-mail",
-      "password": "Heslo",
-      "fullName": "Celé jméno",
-      "submit": "Vytvořit účet",
-      "hasAccount": "Již máte účet?",
-      "loginLink": "Přihlásit se"
+    "auth": {
+        "login": {
+            "title": "Přihlaste se do Veylo",
+            "email": "E-mail",
+            "password": "Heslo",
+            "submit": "Přihlásit se",
+            "noAccount": "Nemáte účet?",
+            "signupLink": "Vytvořit účet"
+        },
+        "signup": {
+            "title": "Vytvořte si účet",
+            "orgName": "Název organizace",
+            "vertical": "Odvětví",
+            "email": "E-mail",
+            "password": "Heslo",
+            "fullName": "Celé jméno",
+            "submit": "Vytvořit účet",
+            "hasAccount": "Již máte účet?",
+            "loginLink": "Přihlásit se"
+        }
+    },
+    "inspections": {
+        "title": "Inspekce",
+        "new": "Nová inspekce",
+        "status": {
+            "new": "Nová",
+            "damage_entered": "Zadáno poškození",
+            "damage_evaluated": "Poškození ohodnoceno",
+            "inspected": "Zkontrolováno",
+            "completed": "Dokončeno"
+        },
+        "fields": {
+            "contractNumber": "Číslo smlouvy",
+            "asset": "Vozidlo",
+            "status": "Stav",
+            "createdAt": "Vytvořeno"
+        },
+        "actions": {
+            "transition": "Změnit stav",
+            "getReport": "Stáhnout protokol",
+            "addFinding": "Přidat nález"
+        },
+        "empty": "Zatím žádné inspekce. Vytvořte první inspekci.",
+        "errors": {
+            "notFound": "Inspekce nenalezena",
+            "invalidTransition": "Tato změna stavu není povolena"
+        }
+    },
+    "findings": {
+        "title": "Nálezy",
+        "new": "Přidat nález",
+        "fields": {
+            "type": "Typ nálezu",
+            "description": "Popis",
+            "location": "Umístění",
+            "bodyArea": "Část karoserie",
+            "severity": "Závažnost",
+            "repairMethod": "Způsob opravy",
+            "totalCost": "Celková cena"
+        },
+        "severity": {
+            "ACCEPTED": "Akceptováno",
+            "NOT_ACCEPTED": "Neakceptováno",
+            "INSURANCE_EVENT": "Pojistná událost"
+        },
+        "repairMethod": {
+            "REPAIR": "Oprava",
+            "REPLACEMENT": "Výměna",
+            "CLEANING": "Čištění",
+            "POLISHING": "Leštění",
+            "NO_ACTION": "Bez zásahu"
+        },
+        "empty": "Žádné nálezy."
+    },
+    "assets": {
+        "title": "Vozidla",
+        "new": "Přidat vozidlo",
+        "fields": {
+            "vin": "VIN",
+            "licensePlate": "SPZ",
+            "brand": "Značka",
+            "model": "Model",
+            "bodyType": "Typ karoserie",
+            "fuelType": "Typ paliva",
+            "transmission": "Převodovka",
+            "odometer": "Tachometr (km)",
+            "color": "Barva",
+            "enginePower": "Výkon motoru (hp)"
+        },
+        "empty": "Zatím žádná vozidla."
+    },
+    "workflow": {
+        "title": "Pracovní postup",
+        "statuses": "Stavy",
+        "transitions": "Přechody",
+        "addStatus": "Přidat stav",
+        "addTransition": "Přidat přechod",
+        "fields": {
+            "name": "Název",
+            "description": "Popis",
+            "stage": "Fáze",
+            "fromStatus": "Ze stavu",
+            "toStatus": "Do stavu"
+        }
     }
-  },
-  "inspections": {
-    "title": "Inspekce",
-    "new": "Nová inspekce",
-    "status": {
-      "new": "Nová",
-      "damage_entered": "Zadáno poškození",
-      "damage_evaluated": "Poškození ohodnoceno",
-      "inspected": "Zkontrolováno",
-      "completed": "Dokončeno"
-    },
-    "fields": {
-      "contractNumber": "Číslo smlouvy",
-      "asset": "Vozidlo",
-      "status": "Stav",
-      "createdAt": "Vytvořeno"
-    },
-    "actions": {
-      "transition": "Změnit stav",
-      "getReport": "Stáhnout protokol",
-      "addFinding": "Přidat nález"
-    },
-    "empty": "Zatím žádné inspekce. Vytvořte první inspekci.",
-    "errors": {
-      "notFound": "Inspekce nenalezena",
-      "invalidTransition": "Tato změna stavu není povolena"
-    }
-  },
-  "findings": {
-    "title": "Nálezy",
-    "new": "Přidat nález",
-    "fields": {
-      "type": "Typ nálezu",
-      "description": "Popis",
-      "location": "Umístění",
-      "bodyArea": "Část karoserie",
-      "severity": "Závažnost",
-      "repairMethod": "Způsob opravy",
-      "totalCost": "Celková cena"
-    },
-    "severity": {
-      "ACCEPTED": "Akceptováno",
-      "NOT_ACCEPTED": "Neakceptováno",
-      "INSURANCE_EVENT": "Pojistná událost"
-    },
-    "repairMethod": {
-      "REPAIR": "Oprava",
-      "REPLACEMENT": "Výměna",
-      "CLEANING": "Čištění",
-      "POLISHING": "Leštění",
-      "NO_ACTION": "Bez zásahu"
-    },
-    "empty": "Žádné nálezy."
-  },
-  "assets": {
-    "title": "Vozidla",
-    "new": "Přidat vozidlo",
-    "fields": {
-      "vin": "VIN",
-      "licensePlate": "SPZ",
-      "brand": "Značka",
-      "model": "Model",
-      "bodyType": "Typ karoserie",
-      "fuelType": "Typ paliva",
-      "transmission": "Převodovka",
-      "odometer": "Tachometr (km)",
-      "color": "Barva",
-      "enginePower": "Výkon motoru (hp)"
-    },
-    "empty": "Zatím žádná vozidla."
-  },
-  "workflow": {
-    "title": "Pracovní postup",
-    "statuses": "Stavy",
-    "transitions": "Přechody",
-    "addStatus": "Přidat stav",
-    "addTransition": "Přidat přechod",
-    "fields": {
-      "name": "Název",
-      "description": "Popis",
-      "stage": "Fáze",
-      "fromStatus": "Ze stavu",
-      "toStatus": "Do stavu"
-    }
-  }
 }

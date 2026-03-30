@@ -31,6 +31,10 @@ You are the test specialist for Veylo — a Go DDD project. You write focused, m
 
 ## Workflow
 
+### 0. Read the Notion task
+
+If a Notion task URL was provided, fetch it — especially the acceptance criteria section. Your tests should cover every acceptance criterion listed there.
+
 ### 1. Identify what needs tests
 
 Read the files provided (or recently changed via `git diff HEAD`). Identify:

@@ -1,121 +1,121 @@
 {
-  "common": {
-    "save": "Save",
-    "cancel": "Cancel",
-    "delete": "Delete",
-    "loading": "Loading...",
-    "error": "Something went wrong",
-    "notFound": "Not found",
-    "confirm": "Confirm",
-    "back": "Back",
-    "create": "Create",
-    "edit": "Edit",
-    "search": "Search",
-    "noResults": "No results found"
-  },
-  "auth": {
-    "login": {
-      "title": "Sign in to Veylo",
-      "email": "Email",
-      "password": "Password",
-      "submit": "Sign in",
-      "noAccount": "Don't have an account?",
-      "signupLink": "Create one"
+    "common": {
+        "save": "Save",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "loading": "Loading...",
+        "error": "Something went wrong",
+        "notFound": "Not found",
+        "confirm": "Confirm",
+        "back": "Back",
+        "create": "Create",
+        "edit": "Edit",
+        "search": "Search",
+        "noResults": "No results found"
     },
-    "signup": {
-      "title": "Create your account",
-      "orgName": "Organization name",
-      "vertical": "Industry",
-      "email": "Email",
-      "password": "Password",
-      "fullName": "Full name",
-      "submit": "Create account",
-      "hasAccount": "Already have an account?",
-      "loginLink": "Sign in"
+    "auth": {
+        "login": {
+            "title": "Sign in to Veylo",
+            "email": "Email",
+            "password": "Password",
+            "submit": "Sign in",
+            "noAccount": "Don't have an account?",
+            "signupLink": "Create one"
+        },
+        "signup": {
+            "title": "Create your account",
+            "orgName": "Organization name",
+            "vertical": "Industry",
+            "email": "Email",
+            "password": "Password",
+            "fullName": "Full name",
+            "submit": "Create account",
+            "hasAccount": "Already have an account?",
+            "loginLink": "Sign in"
+        }
+    },
+    "inspections": {
+        "title": "Inspections",
+        "new": "New inspection",
+        "status": {
+            "new": "New",
+            "damage_entered": "Damage entered",
+            "damage_evaluated": "Damage evaluated",
+            "inspected": "Inspected",
+            "completed": "Completed"
+        },
+        "fields": {
+            "contractNumber": "Contract number",
+            "asset": "Vehicle",
+            "status": "Status",
+            "createdAt": "Created"
+        },
+        "actions": {
+            "transition": "Change status",
+            "getReport": "Download report",
+            "addFinding": "Add finding"
+        },
+        "empty": "No inspections yet. Create your first inspection.",
+        "errors": {
+            "notFound": "Inspection not found",
+            "invalidTransition": "This status change is not allowed"
+        }
+    },
+    "findings": {
+        "title": "Findings",
+        "new": "Add finding",
+        "fields": {
+            "type": "Finding type",
+            "description": "Description",
+            "location": "Location",
+            "bodyArea": "Body area",
+            "severity": "Severity",
+            "repairMethod": "Repair method",
+            "totalCost": "Total cost"
+        },
+        "severity": {
+            "ACCEPTED": "Accepted",
+            "NOT_ACCEPTED": "Not accepted",
+            "INSURANCE_EVENT": "Insurance event"
+        },
+        "repairMethod": {
+            "REPAIR": "Repair",
+            "REPLACEMENT": "Replacement",
+            "CLEANING": "Cleaning",
+            "POLISHING": "Polishing",
+            "NO_ACTION": "No action"
+        },
+        "empty": "No findings recorded."
+    },
+    "assets": {
+        "title": "Vehicles",
+        "new": "Add vehicle",
+        "fields": {
+            "vin": "VIN",
+            "licensePlate": "License plate",
+            "brand": "Brand",
+            "model": "Model",
+            "bodyType": "Body type",
+            "fuelType": "Fuel type",
+            "transmission": "Transmission",
+            "odometer": "Odometer (km)",
+            "color": "Color",
+            "enginePower": "Engine power (hp)"
+        },
+        "empty": "No vehicles yet."
+    },
+    "workflow": {
+        "title": "Workflow",
+        "statuses": "Statuses",
+        "transitions": "Transitions",
+        "addStatus": "Add status",
+        "addTransition": "Add transition",
+        "fields": {
+            "name": "Name",
+            "description": "Description",
+            "stage": "Stage",
+            "fromStatus": "From status",
+            "toStatus": "To status"
+        }
     }
-  },
-  "inspections": {
-    "title": "Inspections",
-    "new": "New inspection",
-    "status": {
-      "new": "New",
-      "damage_entered": "Damage entered",
-      "damage_evaluated": "Damage evaluated",
-      "inspected": "Inspected",
-      "completed": "Completed"
-    },
-    "fields": {
-      "contractNumber": "Contract number",
-      "asset": "Vehicle",
-      "status": "Status",
-      "createdAt": "Created"
-    },
-    "actions": {
-      "transition": "Change status",
-      "getReport": "Download report",
-      "addFinding": "Add finding"
-    },
-    "empty": "No inspections yet. Create your first inspection.",
-    "errors": {
-      "notFound": "Inspection not found",
-      "invalidTransition": "This status change is not allowed"
-    }
-  },
-  "findings": {
-    "title": "Findings",
-    "new": "Add finding",
-    "fields": {
-      "type": "Finding type",
-      "description": "Description",
-      "location": "Location",
-      "bodyArea": "Body area",
-      "severity": "Severity",
-      "repairMethod": "Repair method",
-      "totalCost": "Total cost"
-    },
-    "severity": {
-      "ACCEPTED": "Accepted",
-      "NOT_ACCEPTED": "Not accepted",
-      "INSURANCE_EVENT": "Insurance event"
-    },
-    "repairMethod": {
-      "REPAIR": "Repair",
-      "REPLACEMENT": "Replacement",
-      "CLEANING": "Cleaning",
-      "POLISHING": "Polishing",
-      "NO_ACTION": "No action"
-    },
-    "empty": "No findings recorded."
-  },
-  "assets": {
-    "title": "Vehicles",
-    "new": "Add vehicle",
-    "fields": {
-      "vin": "VIN",
-      "licensePlate": "License plate",
-      "brand": "Brand",
-      "model": "Model",
-      "bodyType": "Body type",
-      "fuelType": "Fuel type",
-      "transmission": "Transmission",
-      "odometer": "Odometer (km)",
-      "color": "Color",
-      "enginePower": "Engine power (hp)"
-    },
-    "empty": "No vehicles yet."
-  },
-  "workflow": {
-    "title": "Workflow",
-    "statuses": "Statuses",
-    "transitions": "Transitions",
-    "addStatus": "Add status",
-    "addTransition": "Add transition",
-    "fields": {
-      "name": "Name",
-      "description": "Description",
-      "stage": "Stage",
-      "fromStatus": "From status",
-      "toStatus": "To status"
-    }
-  }
 }

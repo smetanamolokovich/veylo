@@ -23,6 +23,7 @@ type InspectionItem struct {
 	ID             string `json:"id"`
 	ContractNumber string `json:"contract_number"`
 	Status         string `json:"status"`
+	CreatedAt      string `json:"created_at"`
 }
 
 type ListInspectionsUseCase struct {
@@ -53,6 +54,7 @@ func (uc *ListInspectionsUseCase) Execute(ctx context.Context, req ListInspectio
 			ID:             insp.ID(),
 			ContractNumber: insp.ContractNumber(),
 			Status:         string(insp.Status()),
+			CreatedAt:      insp.CreatedAt().Format("2006-01-02T15:04:05Z"),
 		}
 	}
 

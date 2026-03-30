@@ -3,6 +3,7 @@ package http
 import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"github.com/smetanamolokovich/veylo/internal/interface/http/handler"
 	authmiddleware "github.com/smetanamolokovich/veylo/internal/interface/http/middleware"
 	"github.com/smetanamolokovich/veylo/pkg/jwt"
@@ -11,6 +12,13 @@ import (
 func NewRouter(inspectionHandler *handler.InspectionHandler, authHandler *handler.AuthHandler, assetHandler *handler.AssetHandler, findingHandler *handler.FindingHandler, workflowHandler *handler.WorkflowHandler, orgHandler *handler.OrganizationHandler, invitationHandler *handler.InvitationHandler, jwtManager *jwt.Manager) *chi.Mux {
 	r := chi.NewRouter()
 
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:3000"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
+		AllowCredentials: false,
+		MaxAge:           300,
+	}))
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)

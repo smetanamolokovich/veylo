@@ -1,75 +1,82 @@
-import ky, { type KyInstance } from "ky"
+import ky, { type KyInstance } from 'ky'
+import { getCookieValue, setCookieValue, deleteCookieValue } from '@/lib/auth'
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080"
+export const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'
+
+export const publicClient = ky.create({ prefixUrl: BASE_URL })
 
 function getAccessToken(): string | null {
-  if (typeof window === "undefined") return null
-  return localStorage.getItem("access_token")
+    return getCookieValue('access_token')
 }
 
-function getRefreshToken(): string | null {
-  if (typeof window === "undefined") return null
-  return localStorage.getItem("refresh_token")
+export function getRefreshToken(): string | null {
+    return getCookieValue('refresh_token')
 }
 
-function saveTokens(accessToken: string, refreshToken: string) {
-  localStorage.setItem("access_token", accessToken)
-  localStorage.setItem("refresh_token", refreshToken)
+export function saveTokens(accessToken: string, refreshToken: string) {
+    setCookieValue('access_token', accessToken, 1) // cookie persists 1 day; JWT expiry enforced separately
+    setCookieValue('refresh_token', refreshToken, 7)
 }
 
-function clearTokens() {
-  localStorage.removeItem("access_token")
-  localStorage.removeItem("refresh_token")
-  localStorage.removeItem("organization_id")
+export function clearTokens() {
+    deleteCookieValue('access_token')
+    deleteCookieValue('refresh_token')
 }
 
-let isRefreshing = false
+let refreshPromise: Promise<string> | null = null
+
+async function refreshTokens(): Promise<string> {
+    const refreshToken = getRefreshToken()
+    if (!refreshToken) {
+        clearTokens()
+        window.location.href = '/login'
+        throw new Error('No refresh token')
+    }
+
+    const data = await ky
+        .post(`${BASE_URL}/api/auth/refresh`, {
+            json: { refresh_token: refreshToken },
+        })
+        .json<{ access_token: string; refresh_token: string }>()
+
+    saveTokens(data.access_token, data.refresh_token)
+    return data.access_token
+}
 
 export const apiClient: KyInstance = ky.create({
-  prefixUrl: BASE_URL,
-  hooks: {
-    beforeRequest: [
-      (request) => {
-        const token = getAccessToken()
-        if (token) {
-          request.headers.set("Authorization", `Bearer ${token}`)
-        }
-      },
-    ],
-    afterResponse: [
-      async (request, options, response) => {
-        if (response.status !== 401) return response
-        if (isRefreshing) return response
+    prefixUrl: BASE_URL,
+    timeout: 15000,
+    retry: 0,
+    hooks: {
+        beforeRequest: [
+            (request) => {
+                const token = getAccessToken()
+                console.log('[apiClient] beforeRequest', request.url, 'token:', token ? 'present' : 'missing')
+                if (token) {
+                    request.headers.set('Authorization', `Bearer ${token}`)
+                }
+            },
+        ],
+        afterResponse: [
+            async (request, _options, response) => {
+                if (response.status !== 401) return response
 
-        const refreshToken = getRefreshToken()
-        if (!refreshToken) {
-          clearTokens()
-          window.location.href = "/login"
-          return response
-        }
+                try {
+                    if (!refreshPromise) {
+                        refreshPromise = refreshTokens().finally(() => {
+                            refreshPromise = null
+                        })
+                    }
+                    const newToken = await refreshPromise
 
-        isRefreshing = true
-        try {
-          const data = await ky
-            .post(`${BASE_URL}/api/auth/refresh`, {
-              json: { refresh_token: refreshToken },
-            })
-            .json<{ access_token: string; refresh_token: string }>()
-
-          saveTokens(data.access_token, data.refresh_token)
-
-          request.headers.set("Authorization", `Bearer ${data.access_token}`)
-          return ky(request)
-        } catch {
-          clearTokens()
-          window.location.href = "/login"
-          return response
-        } finally {
-          isRefreshing = false
-        }
-      },
-    ],
-  },
+                    request.headers.set('Authorization', `Bearer ${newToken}`)
+                    return ky(request)
+                } catch {
+                    clearTokens()
+                    window.location.href = '/login'
+                    return response
+                }
+            },
+        ],
+    },
 })
-
-export { saveTokens, clearTokens, getAccessToken }

@@ -25,6 +25,7 @@ import (
 	appauth "github.com/smetanamolokovich/veylo/internal/application/auth"
 	appfinding "github.com/smetanamolokovich/veylo/internal/application/finding"
 	appinspection "github.com/smetanamolokovich/veylo/internal/application/inspection"
+	appinvitation "github.com/smetanamolokovich/veylo/internal/application/invitation"
 	apporg "github.com/smetanamolokovich/veylo/internal/application/organization"
 	appworkflow "github.com/smetanamolokovich/veylo/internal/application/workflow"
 	"github.com/smetanamolokovich/veylo/internal/infrastructure/bcrypt"
@@ -116,6 +117,13 @@ func newTestServer(t *testing.T) (*testServer, func()) {
 	assessFindingUC := appfinding.NewAssessFindingUseCase(findingRepo)
 	findingHandler := handler.NewFindingHandler(createFindingUC, listFindingsUC, assessFindingUC)
 
+	// Invitations
+	invitationRepo := postgres.NewInvitationRepository(db)
+	inviteUserUC := appinvitation.NewInviteUserUseCase(invitationRepo, orgRepo)
+	getInvitationUC := appinvitation.NewGetInvitationUseCase(invitationRepo, orgRepo)
+	acceptInvitationUC := appinvitation.NewAcceptInvitationUseCase(invitationRepo, userRepo, refreshTokenRepo, hasher, jwtManager)
+	invitationHandler := handler.NewInvitationHandler(inviteUserUC, getInvitationUC, acceptInvitationUC)
+
 	// Inspections (no S3 in tests)
 	createInspection := appinspection.NewCreateInspectionUseCase(inspectionRepo, workflowRepo)
 	getInspection := appinspection.NewGetInspectionUseCase(inspectionRepo)
@@ -123,7 +131,7 @@ func newTestServer(t *testing.T) (*testServer, func()) {
 	transitionInspection := appinspection.NewTransitionInspectionUseCase(inspectionRepo, workflowRepo, nil)
 	inspectionHandler := handler.NewInspectionHandler(createInspection, listInspections, getInspection, transitionInspection, reportRepo)
 
-	router := httpinterface.NewRouter(inspectionHandler, authHandler, assetHandler, findingHandler, workflowHandler, orgHandler, jwtManager)
+	router := httpinterface.NewRouter(inspectionHandler, authHandler, assetHandler, findingHandler, workflowHandler, orgHandler, invitationHandler, jwtManager)
 	srv := httptest.NewServer(router)
 
 	cleanup := func() {
